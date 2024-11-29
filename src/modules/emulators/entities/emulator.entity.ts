@@ -18,14 +18,17 @@ export class Emulator {
   device_name: string;
 
   @Column({
-    type: 'text',
     transformer: {
-      to: (value: EmulatorStatus) => value, // Save enum as text
-      from: (value: string) =>
-        EmulatorStatus[value.toUpperCase()] as EmulatorStatus, // Convert text back to enum
+      to: (value: EmulatorStatus) => {
+        return value; // Save enum as text
+      },
+      from: (value: string) => {
+        return value as EmulatorStatus; // Convert text back to enum
+      },
     },
   })
   status: EmulatorStatus;
+
   @CreateDateColumn({ type: 'date' })
   created_at: Date;
 

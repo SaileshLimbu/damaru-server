@@ -31,6 +31,11 @@ export class EmulatorController {
     return this.emulatorService.generateCode(deviceId);
   }
 
+  @Get(':deviceId/available')
+  checkAvailability(@Param('deviceId') deviceId: string) {
+    return this.emulatorService.checkAvailability(deviceId);
+  }
+
   @Get('codes')
   getCodes() {
     return this.emulatorService.getEmulatorCodes();

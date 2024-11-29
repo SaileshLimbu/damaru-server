@@ -20,7 +20,7 @@ export class EmulatorService {
   create(emulator: EmulatorUserDto) {
     return this.emulatorRepository.insert({
       ...emulator,
-      status: EmulatorStatus.registered,
+      status: EmulatorStatus.available,
     });
   }
 
@@ -46,6 +46,14 @@ export class EmulatorService {
       device: { device_id },
       expires_at: DateUtils.add(30, 'd'),
     });
+  }
+
+  async checkAvailability(deviceId: string) {
+    const availableCheck = await this.emulatorRepository.findOne({
+      where: { device_id: deviceId },
+      select: { status: true },
+    });
+    return { available: availableCheck.status === EmulatorStatus.available };
   }
 
   getEmulatorCodes() {
