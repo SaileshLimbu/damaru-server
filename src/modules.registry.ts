@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Account } from './modules/accounts/entities/account.entity';
 import { EmulatorCode } from './modules/emulators/entities/emulator-code.entity';
 import { Emulator } from './modules/emulators/entities/emulator.entity';
+import { EmulatorLinked } from './modules/emulators/entities/emulator-linked.entity';
 
 /**
  * Registers a global configuration module to load environment variables.
@@ -11,13 +12,13 @@ import { Emulator } from './modules/emulators/entities/emulator.entity';
  */
 export const registerConfigModule = () =>
   ConfigModule.forRoot({
-    isGlobal: true,
+    isGlobal: true
   });
 
 export const registerDatabaseModule = () =>
   TypeOrmModule.forRoot({
     type: 'sqlite',
     database: 'database.sqlite',
-    entities: [User, Account, EmulatorCode, Emulator],
-    synchronize: true,
+    entities: [User, Account, EmulatorCode, Emulator, EmulatorLinked],
+    synchronize: true
   });

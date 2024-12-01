@@ -1,13 +1,7 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  OneToMany,
-  PrimaryColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, CreateDateColumn, Entity, OneToMany, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 import { EmulatorCode } from './emulator-code.entity';
 import { EmulatorStatus } from '../interfaces/emulator.status';
+import { EmulatorLinked } from './emulator-linked.entity';
 
 @Entity()
 export class Emulator {
@@ -24,8 +18,8 @@ export class Emulator {
       },
       from: (value: string) => {
         return value as EmulatorStatus; // Convert text back to enum
-      },
-    },
+      }
+    }
   })
   status: EmulatorStatus;
 
@@ -38,9 +32,9 @@ export class Emulator {
   @OneToMany(() => EmulatorCode, (emulatorCode) => emulatorCode.device)
   emulatorCodes: EmulatorCode[];
 
-  // @OneToMany(() => AccountEmulatorConnection, (connection) => connection.device)
-  // emulatorConnections: AccountEmulatorConnection[];
-  //
+  @OneToMany(() => EmulatorLinked, (connection) => connection.device)
+  emulatorConnections: EmulatorLinked[];
+
   // @OneToMany(() => ActivityLog, (activityLog) => activityLog.device)
   // activityLogs: ActivityLog[];
 }

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateAccountDto {
   @ApiProperty()
@@ -12,5 +12,9 @@ export class CreateAccountDto {
 
   @IsOptional()
   @IsString()
-  pin: number;
+  pin: string;
+
+  @IsOptional()
+  @IsBoolean()
+  is_admin: boolean;
 }

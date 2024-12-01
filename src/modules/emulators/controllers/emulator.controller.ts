@@ -1,16 +1,8 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  Put,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiBody } from '@nestjs/swagger';
-import { EmulatorUserDto } from '../dtos/emulator.user.dto';
+import { EmulatorDto } from '../dtos/emulator.dto';
 import { EmulatorService } from '../services/emulator.service';
+import { EmulatorLinkDto } from '../dtos/emulator-link.dto';
 
 @Controller('emulators')
 export class EmulatorController {
@@ -43,27 +35,33 @@ export class EmulatorController {
 
   @Post()
   @ApiBody({
-    type: EmulatorUserDto,
-    description: 'Emulator Create',
+    type: EmulatorDto,
+    description: 'Emulator Create'
   })
-  create(@Body() createUserDto: EmulatorUserDto) {
+  create(@Body() createUserDto: EmulatorDto) {
     return this.emulatorService.create(createUserDto);
   }
 
   @Put(':id')
   @ApiBody({
-    type: EmulatorUserDto,
-    description: 'Emulator Update',
+    type: EmulatorDto,
+    description: 'Emulator Update'
   })
-  update(
-    @Param('id') id: string,
-    @Body() updateUserDto: Partial<EmulatorUserDto>,
-  ) {
+  update(@Param('id') id: string, @Body() updateUserDto: Partial<EmulatorDto>) {
     return this.emulatorService.update(id, updateUserDto);
   }
 
   @Delete(':id')
   delete(@Param('id') id: number) {
     return this.emulatorService.remove(id);
+  }
+
+  @ApiBody({
+    type: EmulatorLinkDto,
+    description: 'Emulator link dto'
+  })
+  @Post('link-emulator')
+  linkEmulator(@Body() emulatorLinkDto: EmulatorLinkDto) {
+    return this.emulatorService.linkEmulator(emulatorLinkDto);
   }
 }

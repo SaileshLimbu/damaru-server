@@ -1,14 +1,7 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { EmulatorCode } from '../../emulators/entities/emulator-code.entity';
+import { EmulatorLinked } from '../../emulators/entities/emulator-linked.entity';
 
 @Entity()
 export class Account {
@@ -36,9 +29,9 @@ export class Account {
   @OneToMany(() => EmulatorCode, (emulatorCode) => emulatorCode.account)
   emulatorCodes: EmulatorCode[];
 
-  // @OneToMany(() => AccountEmulatorConnection, connection => connection.account)
-  // emulatorConnections: AccountEmulatorConnection[];
-  //
+  @OneToMany(() => EmulatorLinked, (connection) => connection.account)
+  emulatorConnections: EmulatorLinked[];
+
   // @OneToMany(() => ActivityLog, activityLog => activityLog.account)
   // activityLogs: ActivityLog[];
 }
