@@ -2,6 +2,7 @@ import { Column, CreateDateColumn, Entity, OneToMany, PrimaryColumn, UpdateDateC
 import { EmulatorCode } from './emulator-code.entity';
 import { EmulatorStatus } from '../interfaces/emulator.status';
 import { EmulatorLinked } from './emulator-linked.entity';
+import { ActivityLog } from '../../activity_logs/entities/activity_log.entity';
 
 @Entity()
 export class Emulator {
@@ -35,6 +36,6 @@ export class Emulator {
   @OneToMany(() => EmulatorLinked, (connection) => connection.device)
   emulatorConnections: EmulatorLinked[];
 
-  // @OneToMany(() => ActivityLog, (activityLog) => activityLog.device)
-  // activityLogs: ActivityLog[];
+  @OneToMany(() => ActivityLog, (activityLog) => activityLog.device)
+  activityLogs: ActivityLog[];
 }

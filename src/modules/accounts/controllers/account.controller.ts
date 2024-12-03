@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  Put,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import { AccountsService } from '../services/account.service';
 import { ApiBody } from '@nestjs/swagger';
 import { CreateAccountDto } from '../dtos/create.account.dto';
@@ -28,7 +20,7 @@ export class AccountsController {
   @Post()
   @ApiBody({
     type: CreateAccountDto,
-    description: 'Account Create',
+    description: 'Account Create'
   })
   create(@Body() createAccountDto: CreateAccountDto) {
     return this.accountsService.create(createAccountDto);
@@ -37,12 +29,9 @@ export class AccountsController {
   @Put(':id')
   @ApiBody({
     type: CreateAccountDto,
-    description: 'Update Create',
+    description: 'Update Create'
   })
-  update(
-    @Param('id') id: string,
-    @Body() updateAccountDto: Partial<CreateAccountDto>,
-  ) {
+  update(@Param('id') id: number, @Body() updateAccountDto: Partial<CreateAccountDto>) {
     return this.accountsService.update(id, updateAccountDto);
   }
 

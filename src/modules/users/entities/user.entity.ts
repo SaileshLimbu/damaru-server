@@ -1,12 +1,6 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToMany,
-  CreateDateColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { Account } from '../../accounts/entities/account.entity';
+import { ActivityLog } from '../../activity_logs/entities/activity_log.entity';
 
 @Entity()
 export class User {
@@ -30,4 +24,7 @@ export class User {
 
   @OneToMany(() => Account, (account) => account.user)
   accounts: Account[];
+
+  @OneToMany(() => ActivityLog, (activityLog) => activityLog.account)
+  activityLogs: ActivityLog[];
 }

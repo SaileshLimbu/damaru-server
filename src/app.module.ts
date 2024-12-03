@@ -5,9 +5,10 @@ import { AppService } from './modules/app/app.service';
 import { UsersModule } from './modules/users/user.module';
 import { AccountsModule } from './modules/accounts/account.module';
 import { EmulatorModule } from './modules/emulators/emulator.module';
+import { ActivityLogModule } from './modules/activity_logs/activity_log.module';
 
 @Module({
-  imports: [registerConfigModule(), registerDatabaseModule(), UsersModule, AccountsModule, EmulatorModule],
+  imports: [registerConfigModule(), registerDatabaseModule(), UsersModule, AccountsModule, EmulatorModule, ActivityLogModule],
   controllers: [AppController],
   providers: [AppService]
 })

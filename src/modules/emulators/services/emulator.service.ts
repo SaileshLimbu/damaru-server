@@ -9,6 +9,8 @@ import { StringUtils } from '../../../common/utils/string.utils';
 import { DateUtils } from '../../../common/utils/date.utils';
 import { EmulatorLinked } from '../entities/emulator-linked.entity';
 import { EmulatorLinkDto } from '../dtos/emulator-link.dto';
+import { ActivityLogService } from '../../activity_logs/services/activity_log.service';
+import { Actions } from '../../activity_logs/enums/Actions';
 
 @Injectable()
 export class EmulatorService {
@@ -18,17 +20,29 @@ export class EmulatorService {
     @InjectRepository(EmulatorCode)
     private readonly emulatorCodesRepository: Repository<EmulatorCode>,
     @InjectRepository(EmulatorLinked)
-    private readonly emulatorLinkedRepository: Repository<EmulatorLinked>
+    private readonly emulatorLinkedRepository: Repository<EmulatorLinked>,
+    private readonly activityLogService: ActivityLogService
   ) {}
 
-  create(emulator: EmulatorDto) {
-    return this.emulatorRepository.insert({
+  async create(emulator: EmulatorDto) {
+    const emulatorDetails = {
       ...emulator,
       status: EmulatorStatus.available
+    };
+    //todo change user after auth
+    await this.activityLogService.log({
+      action: Actions.CREATE_EMULATOR,
+      metadata: emulatorDetails
     });
+    return this.emulatorRepository.insert(emulatorDetails);
   }
 
-  update(id: string, emulator: Partial<EmulatorDto>) {
+  async update(id: string, emulator: Partial<EmulatorDto>) {
+    //todo change user after auth
+    await this.activityLogService.log({
+      action: Actions.UPDATE_EMULATOR,
+      metadata: emulator
+    });
     return this.emulatorRepository.update(id, emulator);
   }
 
@@ -41,10 +55,22 @@ export class EmulatorService {
   }
 
   async remove(id: number): Promise<void> {
+    //todo change user after auth
+    await this.activityLogService.log({
+      action: Actions.DELETE_EMULATOR,
+      metadata: { id }
+    });
     await this.emulatorRepository.delete(id);
   }
 
   async linkEmulator(emulatorLinkDto: EmulatorLinkDto) {
+    //todo change user after auth
+    await this.activityLogService.log({
+      action: Actions.LINK_EMULATOR,
+      account_id: emulatorLinkDto.account_id,
+      device_id: emulatorLinkDto.device_id,
+      metadata: emulatorLinkDto
+    });
     await this.emulatorLinkedRepository.insert({
       connected_at: undefined,
       account: { id: emulatorLinkDto.account_id },

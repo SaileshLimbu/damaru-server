@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  Put,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { UsersService } from '../services/user.service';
 import { ApiBody } from '@nestjs/swagger';
 import { CreateUserDto } from '../dtos/create.user.dto';
@@ -29,7 +20,7 @@ export class UsersController {
   @Post()
   @ApiBody({
     type: CreateUserDto,
-    description: 'User Create',
+    description: 'User Create'
   })
   create(@Body() createUserDto: CreateUserDto) {
     return this.userServices.create(createUserDto);
@@ -38,12 +29,9 @@ export class UsersController {
   @Put(':id')
   @ApiBody({
     type: CreateUserDto,
-    description: 'User Update',
+    description: 'User Update'
   })
-  update(
-    @Param('id') id: string,
-    @Body() updateUserDto: Partial<CreateUserDto>,
-  ) {
+  update(@Param('id') id: number, @Body() updateUserDto: Partial<CreateUserDto>) {
     return this.userServices.update(id, updateUserDto);
   }
 
