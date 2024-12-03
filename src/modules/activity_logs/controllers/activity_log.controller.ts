@@ -31,7 +31,7 @@ export class ActivityLogController {
     type: CreateActivityLogDto,
     description: 'Update Create'
   })
-  update(@Param('id') id: string, @Body() updateAccountDto: Partial<CreateActivityLogDto>) {
+  update(@Param('id') id: number, @Body() updateAccountDto: Partial<CreateActivityLogDto>) {
     return this.activityLogService.update(id, updateAccountDto);
   }
 
