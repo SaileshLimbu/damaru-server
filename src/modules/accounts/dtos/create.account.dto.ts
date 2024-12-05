@@ -6,7 +6,7 @@ export class CreateAccountDto {
   @IsString()
   account_name: string;
 
-  @ApiProperty()
+  @IsOptional()
   @IsNumber()
   userId: number;
 

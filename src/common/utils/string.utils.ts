@@ -1,12 +1,9 @@
 export class StringUtils {
   static generateRandomAlphaNumeric(length: number = 5) {
-    return StringUtils.generate(
-      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
-      length,
-    );
+    return StringUtils.generate('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', length);
   }
 
-  static generate(charSet: string, length) {
+  private static generate(charSet: string, length) {
     let result = '';
     for (let i = 0; i < length; i++) {
       const randomIndex = Math.floor(Math.random() * charSet.length);

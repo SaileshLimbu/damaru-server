@@ -6,6 +6,7 @@ import { EmulatorCode } from './modules/emulators/entities/emulator-code.entity'
 import { Emulator } from './modules/emulators/entities/emulator.entity';
 import { EmulatorLinked } from './modules/emulators/entities/emulator-linked.entity';
 import { ActivityLog } from './modules/activity_logs/entities/activity_log.entity';
+import { Role } from './modules/users/entities/role.entity';
 
 /**
  * Registers a global configuration module to load environment variables.
@@ -20,6 +21,6 @@ export const registerDatabaseModule = () =>
   TypeOrmModule.forRoot({
     type: 'sqlite',
     database: 'database.sqlite',
-    entities: [User, Account, EmulatorCode, Emulator, EmulatorLinked, ActivityLog],
+    entities: [User, Account, EmulatorCode, Emulator, EmulatorLinked, ActivityLog, Role],
     synchronize: true
   });

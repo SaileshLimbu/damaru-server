@@ -26,21 +26,6 @@ export class AccountsService {
         relations: { user: true }
       });
       if (account?.length > 0) {
-        const account = {
-          account_name: createAccountDto.account_name,
-          pin: StringUtils.generateRandomNumeric(5),
-          user: { id: createAccountDto.userId },
-          is_admin: createAccountDto.is_admin
-        };
-        const accountCreated = await this.accountRepository.insert(account);
-        await this.activityLogService.log({
-          user_id: createAccountDto.userId,
-          account_id: accountCreated.identifiers[0].id as number,
-          action: Actions.CREATE_ACCOUNT,
-          metadata: account
-        });
-        return accountCreated;
-      } else {
         throw new HttpException(
           {
             statusCod: HttpStatus.FOUND,
@@ -50,6 +35,21 @@ export class AccountsService {
         );
       }
     }
+
+    const account = {
+      account_name: createAccountDto.account_name,
+      pin: StringUtils.generateRandomNumeric(5),
+      user: { id: createAccountDto.userId },
+      is_admin: createAccountDto.is_admin
+    };
+    const accountCreated = await this.accountRepository.insert(account);
+    await this.activityLogService.log({
+      user_id: createAccountDto.userId,
+      account_id: accountCreated.identifiers[0].id as number,
+      action: Actions.CREATE_ACCOUNT,
+      metadata: account
+    });
+    return accountCreated;
   }
 
   findUserByAccount(accountId: number) {

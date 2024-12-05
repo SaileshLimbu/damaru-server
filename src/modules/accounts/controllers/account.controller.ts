@@ -1,8 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { AccountsService } from '../services/account.service';
-import { ApiBody } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { CreateAccountDto } from '../dtos/create.account.dto';
+import { JwtAuthGuard } from '../../../core/guards/jwt.guard';
+import { AndroidAdmin } from '../../../core/guards/android_admin.guard';
+import { AuthUser } from '../../../common/interfaces/AuthUser';
 
+@ApiTags('Accounts')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, AndroidAdmin)
 @Controller('accounts')
 export class AccountsController {
   constructor(private readonly accountsService: AccountsService) {}
@@ -22,8 +28,8 @@ export class AccountsController {
     type: CreateAccountDto,
     description: 'Account Create'
   })
-  create(@Body() createAccountDto: CreateAccountDto) {
-    return this.accountsService.create(createAccountDto);
+  create(@Body() createAccountDto: CreateAccountDto, @Req() authUser: AuthUser) {
+    return this.accountsService.create({ ...createAccountDto, userId: authUser.user.sub });
   }
 
   @Put(':id')

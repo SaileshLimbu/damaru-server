@@ -1,5 +1,5 @@
 import { User } from '../entities/user.entity';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InsertResult, Repository } from 'typeorm';
 import { CreateUserDto } from '../dtos/create.user.dto';
@@ -7,45 +7,61 @@ import { AccountsService } from '../../accounts/services/account.service';
 import { StringUtils } from '../../../common/utils/string.utils';
 import { ActivityLogService } from '../../activity_logs/services/activity_log.service';
 import { Actions } from '../../activity_logs/enums/Actions';
+import { HashUtils } from '../../../common/utils/hash.utils';
+import { Role as RoleEntity } from '../entities/role.entity';
+import { Roles } from '../enums/roles';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
+    @InjectRepository(RoleEntity)
+    private readonly roleRepository: Repository<RoleEntity>,
     private readonly accountService: AccountsService,
     private readonly activityLogService: ActivityLogService
   ) {}
 
   async create(user: CreateUserDto) {
-    const newUser = await this.usersRepository.insert(user);
-    const userId: number = newUser?.identifiers[0]?.id as number;
-    const account = { userId, account_name: user.name, pin: StringUtils.generateRandomNumeric(), is_admin: true };
-    const newAccount: InsertResult = await this.accountService.create(account);
-    const accountId: number = newAccount.identifiers[0].id as number;
-    await this.activityLogService.log({ user_id: userId, action: Actions.CREATE_USER, metadata: user });
-    await this.activityLogService.log({
-      user_id: userId,
-      action: Actions.CREATE_ACCOUNT,
-      account_id: accountId,
-      metadata: account
+    const role = await this.roleRepository.findOne({ where: { name: user.role.toString() } });
+    const newPassword = user.password ?? StringUtils.generateRandomAlphaNumeric(8);
+    const newUser = await this.usersRepository.insert({
+      ...user,
+      password: await HashUtils.hash(newPassword),
+      role: { id: role.id }
     });
-    return this.findOne(userId);
+    const userId: number = newUser?.identifiers[0]?.id as number;
+    await this.activityLogService.log({ user_id: userId, action: Actions.CREATE_USER, metadata: user });
+    if (user.role === Roles.AndroidUser) {
+      const account = { userId, account_name: user.name, pin: StringUtils.generateRandomNumeric(), is_admin: true };
+      const newAccount: InsertResult = await this.accountService.create(account);
+      const accountId: number = newAccount.identifiers[0].id as number;
+      await this.activityLogService.log({
+        user_id: userId,
+        action: Actions.CREATE_ACCOUNT,
+        account_id: accountId,
+        metadata: account
+      });
+    }
+    return { ...(await this.findOne(userId)), password: newPassword };
   }
 
   async update(id: number, user: Partial<CreateUserDto>) {
-    await this.activityLogService.log({ user_id: id, action: Actions.UPDATE_USER, metadata: user });
-    return this.usersRepository.update(id, user);
-  }
-
-  login(googleToken: string) {
-    // verifies token
-    // check if user exist
-    // provides jwt token
-    return this.usersRepository.find({
-      where: { googleUserId: googleToken },
-      relations: { accounts: true }
-    });
+    const updatedUser = {};
+    if (user.role) {
+      throw new BadRequestException('Role cannot be updated');
+    }
+    if (user.password) {
+      updatedUser['password'] = HashUtils.hash(user.password);
+    }
+    if (user.name) {
+      updatedUser['name'] = user.name;
+    }
+    if (user.email) {
+      updatedUser['email'] = user.email;
+    }
+    await this.activityLogService.log({ user_id: id, action: Actions.UPDATE_USER, metadata: updatedUser });
+    return await this.usersRepository.update(id, updatedUser);
   }
 
   findAll(): Promise<User[]> {

@@ -1,8 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { ActivityLogService } from '../services/activity_log.service';
-import { ApiBody } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { CreateActivityLogDto } from '../dtos/create.activity_log.dto';
+import { JwtAuthGuard } from '../../../core/guards/jwt.guard';
+import { AndroidAdmin } from '../../../core/guards/android_admin.guard';
 
+@ApiTags('ActivityLogs')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, AndroidAdmin)
 @Controller('activity-logs')
 export class ActivityLogController {
   constructor(private readonly activityLogService: ActivityLogService) {}

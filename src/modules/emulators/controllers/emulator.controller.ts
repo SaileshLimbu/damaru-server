@@ -1,9 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiBody } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { EmulatorDto } from '../dtos/emulator.dto';
 import { EmulatorService } from '../services/emulator.service';
 import { EmulatorLinkDto } from '../dtos/emulator-link.dto';
+import { JwtAuthGuard } from '../../../core/guards/jwt.guard';
+import { SuperAdmin } from '../../../core/guards/super_admin.guard';
 
+@ApiTags('Emulators')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, SuperAdmin)
 @Controller('emulators')
 export class EmulatorController {
   constructor(private readonly emulatorService: EmulatorService) {}

@@ -1,8 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { UsersService } from '../services/user.service';
-import { ApiBody } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { CreateUserDto } from '../dtos/create.user.dto';
+import { Roles } from '../enums/roles';
+import { JwtAuthGuard } from '../../../core/guards/jwt.guard';
+import { SuperAdmin } from '../../../core/guards/super_admin.guard';
 
+@ApiTags('Users')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, SuperAdmin)
 @Controller('users')
 export class UsersController {
   constructor(private readonly userServices: UsersService) {}
@@ -23,7 +29,7 @@ export class UsersController {
     description: 'User Create'
   })
   create(@Body() createUserDto: CreateUserDto) {
-    return this.userServices.create(createUserDto);
+    return this.userServices.create({ ...createUserDto, role: createUserDto.role ?? Roles.AndroidUser });
   }
 
   @Put(':id')
@@ -33,11 +39,6 @@ export class UsersController {
   })
   update(@Param('id') id: number, @Body() updateUserDto: Partial<CreateUserDto>) {
     return this.userServices.update(id, updateUserDto);
-  }
-
-  @Get('login')
-  login(@Query('googleToken') googleToken: string) {
-    return this.userServices.login(googleToken);
   }
 
   @Delete(':id')

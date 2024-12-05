@@ -1,6 +1,7 @@
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { Account } from '../../accounts/entities/account.entity';
 import { ActivityLog } from '../../activity_logs/entities/activity_log.entity';
+import { Role } from './role.entity';
 
 @Entity()
 export class User {
@@ -14,13 +15,16 @@ export class User {
   name: string;
 
   @Column()
-  googleUserId: string;
+  password: string;
 
   @CreateDateColumn({ type: 'date' })
   created_at: Date;
 
   @UpdateDateColumn({ type: 'date' })
   updated_at: Date;
+
+  @ManyToOne(() => Role, (role) => role.id)
+  role: Role;
 
   @OneToMany(() => Account, (account) => account.user)
   accounts: Account[];
