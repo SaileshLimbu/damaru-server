@@ -5,10 +5,12 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { ExceptionHandler } from './core/middlewares/ExceptionHandler';
 import { ConfigService } from '@nestjs/config';
 import 'reflect-metadata';
+import { EncryptionInterceptor } from './core/middlewares/EncryptionInterceptor';
+import { EncryptionService } from './core/encryption/encryption.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.useGlobalPipes(new ValidationPipe());
+  // app.useGlobalPipes(new ValidationPipe());
   const logger = new Logger('App-Error');
   const configService = app.get(ConfigService);
 
@@ -37,6 +39,11 @@ async function bootstrap() {
   app.useLogger(logger);
   // Error Handler
   app.useGlobalFilters(new ExceptionHandler(logger));
+
+  // Resolve EncryptionService manually
+  const encryptionService = app.get(EncryptionService);
+  app.useGlobalInterceptors(new EncryptionInterceptor(encryptionService));
+
   await app.listen(configService.get<number>('APP_PORT') || 3000);
 }
 

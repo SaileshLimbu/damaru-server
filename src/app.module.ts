@@ -7,10 +7,11 @@ import { AccountsModule } from './modules/accounts/account.module';
 import { EmulatorModule } from './modules/emulators/emulator.module';
 import { ActivityLogModule } from './modules/activity_logs/activity_log.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { EncryptionService } from './core/encryption/encryption.service';
 
 @Module({
   imports: [registerConfigModule(), registerDatabaseModule(), AuthModule, UsersModule, AccountsModule, EmulatorModule, ActivityLogModule],
   controllers: [AppController],
-  providers: [AppService]
+  providers: [AppService, EncryptionService]
 })
 export class AppModule {}
