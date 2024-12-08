@@ -1,6 +1,7 @@
 import { Json } from '../../common/interfaces/json';
 
 export interface DecryptedPayload {
-  payload: Json;
+  data: Json;
   aesKey: string;
+  rsaKey: string;
 }

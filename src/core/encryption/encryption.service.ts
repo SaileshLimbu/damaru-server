@@ -84,6 +84,10 @@ export class EncryptionService {
     console.log({ aesEncryptedData });
     const decryptedAesKey = this.rsaDecrypt(rsaEncryptedKey);
     console.log({ decryptedAesKey });
-    return { payload: JSON.parse(this.aesDecrypt(aesEncryptedData, decryptedAesKey)) as Json, aesKey: decryptedAesKey };
+    return {
+      data: JSON.parse(this.aesDecrypt(aesEncryptedData, decryptedAesKey)) as Json,
+      aesKey: decryptedAesKey,
+      rsaKey: rsaEncryptedKey
+    };
   }
 }
