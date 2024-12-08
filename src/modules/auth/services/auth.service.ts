@@ -23,7 +23,7 @@ export class AuthService {
       where: { email: loginDto.email },
       relations: { accounts: true, role: true }
     });
-    if (user && (await HashUtils.compareHash(loginDto.password, user.password))) {
+    if (loginDto?.password && user && (await HashUtils.compareHash(loginDto.password, user.password))) {
       console.log({ user });
       let jwtPayload: JwtToken = { sub: null, email: null, role: null, account: null, subRole: null };
       if (user.role.name === Roles.AndroidUser.toString()) {

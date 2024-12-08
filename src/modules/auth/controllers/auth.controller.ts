@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
 import { Request } from 'express';
-import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { LoginDto } from '../dtos/login.dto';
 import { JwtAuthGuard } from '../../../core/guards/jwt.guard';
 
@@ -14,11 +14,14 @@ export class AuthController {
     type: LoginDto,
     description: 'Login Dto'
   })
+  @ApiConsumes('application/json', 'text/plain')
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }
+
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @ApiConsumes('application/json', 'text/plain')
   @Get('check')
   checkAuth(@Req() req: Request) {
     const user = req.user; // The JWT payload is attached to the `user` property

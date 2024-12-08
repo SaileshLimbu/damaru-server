@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { UsersService } from '../services/user.service';
-import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { CreateUserDto } from '../dtos/create.user.dto';
 import { Roles } from '../enums/roles';
 import { JwtAuthGuard } from '../../../core/guards/jwt.guard';
@@ -19,11 +19,13 @@ export class UsersController {
    * @returns An array of all user objects
    */
   @Get()
+  @ApiConsumes('application/json', 'text/plain')
   findAll() {
     return this.userServices.findAll();
   }
 
   @Post()
+  @ApiConsumes('application/json', 'text/plain')
   @ApiBody({
     type: CreateUserDto,
     description: 'User Create'
@@ -33,6 +35,7 @@ export class UsersController {
   }
 
   @Put(':id')
+  @ApiConsumes('application/json', 'text/plain')
   @ApiBody({
     type: CreateUserDto,
     description: 'User Update'
@@ -42,6 +45,7 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @ApiConsumes('application/json', 'text/plain')
   delete(@Param('id') id: number) {
     return this.userServices.remove(id);
   }

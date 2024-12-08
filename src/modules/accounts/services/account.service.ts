@@ -1,5 +1,5 @@
 import { Account } from '../entities/account.entity';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateAccountDto } from '../dtos/create.account.dto';
@@ -60,54 +60,63 @@ export class AccountsService {
     });
   }
 
-  async update(id: number, updateAccountDto: Partial<CreateAccountDto>) {
-    let updateFields = {};
-    if (updateAccountDto.account_name) {
-      updateFields = {
-        ...updateFields,
-        account_name: updateAccountDto.account_name
-      };
+  async update(id: number, updateAccountDto: Partial<CreateAccountDto>, userId: number) {
+    const accountBelongToUser = await this.findUserByAccount(id);
+    if (accountBelongToUser?.user?.id === userId) {
+      let updateFields = {};
+      if (updateAccountDto.account_name) {
+        updateFields = {
+          ...updateFields,
+          account_name: updateAccountDto.account_name
+        };
+      }
+      if (updateAccountDto.pin) {
+        updateFields = {
+          ...updateFields,
+          pin: updateAccountDto.pin
+        };
+      }
+      if (updateAccountDto.userId) {
+        // todo check if we need this or not
+        updateFields = {
+          ...updateFields,
+          user: { id: updateAccountDto.userId }
+        };
+      }
+      updateFields = { ...updateFields, updated_at: DateUtils.today() };
+      const accountUser = await this.findUserByAccount(id);
+      await this.activityLogService.log({
+        user_id: accountUser.user.id,
+        account_id: id,
+        action: Actions.UPDATE_ACCOUNT,
+        metadata: updateFields
+      });
+      return this.accountRepository.update(id, updateFields);
+    } else {
+      throw new UnauthorizedException('You cannot update account that you do not owned');
     }
-    if (updateAccountDto.pin) {
-      updateFields = {
-        ...updateFields,
-        pin: updateAccountDto.pin
-      };
-    }
-    if (updateAccountDto.userId) {
-      // todo check if we need this or not
-      updateFields = {
-        ...updateFields,
-        user: { id: updateAccountDto.userId }
-      };
-    }
-    updateFields = { ...updateFields, updated_at: DateUtils.today() };
-    const accountUser = await this.findUserByAccount(id);
-    await this.activityLogService.log({
-      user_id: accountUser.user.id,
-      account_id: id,
-      action: Actions.UPDATE_ACCOUNT,
-      metadata: updateFields
-    });
-    return this.accountRepository.update(id, updateFields);
   }
 
-  findAll(): Promise<Account[]> {
-    return this.accountRepository.find();
+  findAll(userId: number): Promise<Account[]> {
+    return this.accountRepository.find({ where: { user: { id: userId } } });
   }
 
   findOne(id: number): Promise<Account | null> {
     return this.accountRepository.findOneBy({ id });
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: number, userId: number): Promise<void> {
     const accountUser = await this.findUserByAccount(id);
-    await this.activityLogService.log({
-      user_id: accountUser.user.id,
-      account_id: id,
-      action: Actions.DELETE_ACCOUNT,
-      metadata: { id }
-    });
-    await this.accountRepository.delete(id);
+    if (accountUser?.user?.id === userId) {
+      await this.activityLogService.log({
+        user_id: accountUser.user.id,
+        account_id: id,
+        action: Actions.DELETE_ACCOUNT,
+        metadata: { id }
+      });
+      await this.accountRepository.delete(id);
+    } else {
+      throw new UnauthorizedException('You cannot delete account that you do not owned');
+    }
   }
 }

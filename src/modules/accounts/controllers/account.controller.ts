@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { AccountsService } from '../services/account.service';
-import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { CreateAccountDto } from '../dtos/create.account.dto';
 import { JwtAuthGuard } from '../../../core/guards/jwt.guard';
 import { AndroidAdmin } from '../../../core/guards/android_admin.guard';
@@ -19,8 +19,9 @@ export class AccountsController {
    * @returns An array of all user objects
    */
   @Get()
-  findAll() {
-    return this.accountsService.findAll();
+  @ApiConsumes('application/json', 'text/plain')
+  findAll(@Req() authUser: AuthUser) {
+    return this.accountsService.findAll(authUser.user.sub);
   }
 
   @Post()
@@ -28,6 +29,7 @@ export class AccountsController {
     type: CreateAccountDto,
     description: 'Account Create'
   })
+  @ApiConsumes('application/json', 'text/plain')
   create(@Body() createAccountDto: CreateAccountDto, @Req() authUser: AuthUser) {
     return this.accountsService.create({ ...createAccountDto, userId: authUser.user.sub });
   }
@@ -37,12 +39,14 @@ export class AccountsController {
     type: CreateAccountDto,
     description: 'Update Create'
   })
-  update(@Param('id') id: number, @Body() updateAccountDto: Partial<CreateAccountDto>) {
-    return this.accountsService.update(id, updateAccountDto);
+  @ApiConsumes('application/json', 'text/plain')
+  update(@Param('id') id: number, @Body() updateAccountDto: Partial<CreateAccountDto>, @Req() authUser: AuthUser) {
+    return this.accountsService.update(id, updateAccountDto, authUser.user.sub);
   }
 
   @Delete(':id')
-  delete(@Param('id') id: number) {
-    return this.accountsService.remove(id);
+  @ApiConsumes('application/json', 'text/plain')
+  delete(@Param('id') id: number, @Req() authUser: AuthUser) {
+    return this.accountsService.remove(id, authUser.user.sub);
   }
 }

@@ -8,9 +8,19 @@ import { EmulatorModule } from './modules/emulators/emulator.module';
 import { ActivityLogModule } from './modules/activity_logs/activity_log.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { EncryptionService } from './core/encryption/encryption.service';
+import { SeederModule } from './core/database/seeder.module';
 
 @Module({
-  imports: [registerConfigModule(), registerDatabaseModule(), AuthModule, UsersModule, AccountsModule, EmulatorModule, ActivityLogModule],
+  imports: [
+    registerConfigModule(),
+    registerDatabaseModule(),
+    AuthModule,
+    UsersModule,
+    AccountsModule,
+    EmulatorModule,
+    ActivityLogModule,
+    SeederModule
+  ],
   controllers: [AppController],
   providers: [AppService, EncryptionService]
 })
