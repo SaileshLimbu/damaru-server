@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Android Account Client</title>
+  <!-- Include the Socket.IO library -->
+  <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+</head>
+<body>
+<h1>Android Account</h1>
+<button id="connect-emulator">Connect to Emulator</button>
+<div>
+  <input type="text" id="adbCommand" placeholder="Enter ADB command" />
+  <button id="sendCommand">Send Command</button>
+</div>
+<pre id="log"></pre>
+<video id="remoteVideo" autoplay playsinline></video>
+
+<script>
+  const connectionId = "Emulator1"; // ID of the emulator to connect to
+  const signalingServer = "ws://localhost:3000/signaling"; // Socket.IO server URL
+  const socketOptions = {
+    transportOptions: {
+      polling: {
+        extraHeaders: {
+          Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImFjY291bnQiOiJBbmRyb2lkQWNjb3VudDEiLCJlbWFpbCI6ImFuZHJvaWRhZG1pbkBkYW1hcnUuY29tIiwicm9sZSI6IkFuZHJvaWRVc2VyIiwic3ViUm9sZSI6IkFuZHJvaWRBY2NvdW50IiwiaWF0IjoxNzMzODQ5MzA4LCJleHAiOjE3MzM4NTI5MDh9.abEwfrq2Q781Nd6eYbxELHX3hCo6Yj5Wvx6lb92QUek',
+        }
+      }
+    }
+  };
+  const socket = io(signalingServer, socketOptions); // Initialize Socket.IO client
+
+  let pc;
+  let dataChannel;
+
+  const log = (message) => {
+    document.getElementById("log").textContent += `${message}\n`;
+  };
+
+  const setupPeerConnection = () => {
+
+    pc.onicecandidate = (e) => {
+      if (e.candidate) {
+        socket.emit("IceCandidate", { connectionId, candidate: e.candidate });
+      }
+    };
+
+  };
+
+  socket.on("connect", () => {
+    log("Socket.IO connected.");
+    document.getElementById("connect-emulator").addEventListener("click", async () => {
+      const pcConstraints = {
+        'optional': [
+          {'DtlsSrtpKeyAgreement': true},
+        ],
+      };
+      const servers = {'iceServers': [
+          {url: 'stun:stun.l.google.com:19302'},
+          {url: 'stun:stun1.l.google.com:19302'},
+          {url: 'stun:stun2.l.google.com:19302'},
+          {url: 'stun:stun3.l.google.com:19302'},
+          {url: 'stun:stun4.l.google.com:19302'}
+        ]};
+      pc = new RTCPeerConnection(servers, pcConstraints);
+
+      pc.remote.ontrack(event => {
+        log('event from remote', event)
+        const remoteVideo = document.getElementById("remoteVideo");
+        if(!event.streams[0]) {
+          remoteVideo.srcObject = event.streams[0];
+          log("Remote stream added.");
+        }
+      })
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      socket.emit("Offer", { connectionId, sdp: offer.sdp.toString() });
+      log("Sent offer to emulator.");
+      pc.onicecandidate = (e) => {
+        log(`ice candidate`);
+        if (e.candidate) {
+          socket.emit('IceCandidate', { clientId, candidate: e.candidate });
+        }
+      };
+    });
+  });
+
+
+    socket.on("Answer", async (message) => {
+    const { sdp } = message;
+    await pc.setRemoteDescription(new RTCSessionDescription({ type: "answer", sdp }));
+    log("Received answer from emulator.");
+    setupPeerConnection()
+  });
+
+  socket.on("IceCandidate", async (message) => {
+    const { candidate } = message;
+    try {
+      await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      log("Added ICE candidate from emulator.");
+    } catch (error) {
+      log("Error adding received ICE candidate: " + error);
+    }
+  });
+
+  socket.on("disconnect", () => log("Socket.IO connection closed."));
+
+</script>
+</body>
+</html>

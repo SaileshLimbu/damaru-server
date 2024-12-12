@@ -9,6 +9,7 @@ import { ActivityLogModule } from './modules/activity_logs/activity_log.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { EncryptionService } from './core/encryption/encryption.service';
 import { SeederModule } from './core/database/seeder.module';
+import { SignalingServerModule } from './core/signaling/SignalingServerModule';
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { SeederModule } from './core/database/seeder.module';
     AccountsModule,
     EmulatorModule,
     ActivityLogModule,
-    SeederModule
+    SeederModule,
+    SignalingServerModule
   ],
   controllers: [AppController],
   providers: [AppService, EncryptionService]

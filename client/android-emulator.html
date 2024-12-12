@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>Android Emulator</title>
+  <script src='https://cdn.socket.io/4.8.1/socket.io.min.js'
+          integrity='sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+'
+          crossorigin='anonymous'></script>
+</head>
+<body>
+<h1>Android Emulator</h1>
+<button id='start-streaming'>Start Streaming</button>
+<pre id='log'></pre>
+
+<script>
+  const deviceId = 'Emulator1'; // Unique ID for the emulator
+  const signalingServer = 'ws://localhost:3000/signaling'; // Socket.IO server
+  const socketOptions = {
+    transportOptions: {
+      polling: {
+        extraHeaders: {
+          Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoic3VwZXJhZG1pbkBkYW1hcnUuY29tIiwicm9sZSI6IlN1cGVyQWRtaW4iLCJpYXQiOjE3MzM4NDU0NzgsImV4cCI6MTczMzg0OTA3OH0.vKQYGRdtvWkIYw3VwXoqv-uKe1iEkAKkKdkQkZbvY00'
+        }
+      }
+    }
+  };
+  const socket = io(signalingServer, socketOptions); // Connect to namespace
+
+  let peerConnections = {};
+  let adbDataChannel;
+  const pcConstraints = {
+    'optional': [
+      {'DtlsSrtpKeyAgreement': true},
+    ],
+  };
+  const servers = {'iceServers': [
+      {url: 'stun:stun.l.google.com:19302'},
+      {url: 'stun:stun1.l.google.com:19302'},
+      {url: 'stun:stun2.l.google.com:19302'},
+      {url: 'stun:stun3.l.google.com:19302'},
+      {url: 'stun:stun4.l.google.com:19302'}
+    ]};
+  const pc = new RTCPeerConnection(servers, pcConstraints);
+
+  const log = (message) => {
+    document.getElementById('log').textContent += `${message}\n`;
+  };
+  async function captureScreen() {
+    const displayMediaOptions = {
+      video: {
+        cursor: "always"
+      },
+      audio: false
+    };
+    return await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
+  }
+  socket.on('connect', () => {
+    log('Socket.IO connected.');
+
+    // Handle Start Streaming button
+    document.getElementById('start-streaming').addEventListener('click', async () => {
+      socket.emit('StartStreaming', { deviceId });
+      log('StartStreaming event sent.');
+      await navigator.mediaDevices.getUserMedia({video: true }, (stream) => {
+        pc.addTrack(stream)
+      });
+
+      pc.onicecandidate = (e) => {
+        log(`ice candidate`);
+        if (e.candidate) {
+          socket.emit('IceCandidate', { candidate: e.candidate });
+        }
+      };
+    });
+  });
+
+  // Listen for Offer from server (client connecting)
+  // Peer A (Emulator) - Setup data channel and handle connection
+  socket.on('Offer', async (message) => {
+    const { clientId, sdp } = message;
+    log(`Received offer from client: ${clientId}`);
+
+    peerConnections[clientId] = pc;
+
+    // Handle SDP offer and create an answer
+    await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+
+    // Send the answer back to the server
+    socket.emit('Answer', { clientId, sdp: answer.sdp });
+    log(`Sent answer to client: ${clientId}`);
+  });
+
+  socket.on('disconnect', () => log('Socket.IO connection closed.'));
+
+
+</script>
+
+</body>
+</html>

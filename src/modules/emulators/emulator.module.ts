@@ -10,6 +10,7 @@ import { ActivityLogModule } from '../activity_logs/activity_log.module';
 @Module({
   imports: [TypeOrmModule.forFeature([Emulator, EmulatorCode, EmulatorLinked]), ActivityLogModule],
   providers: [EmulatorService],
-  controllers: [EmulatorController]
+  controllers: [EmulatorController],
+  exports: [EmulatorService]
 })
 export class EmulatorModule {}

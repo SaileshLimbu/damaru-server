@@ -1,5 +1,6 @@
 export enum EmulatorStatus {
-  available = 'available',
   registered = 'registered',
+  online = 'online',
+  offline = 'offline',
   running = 'running',
 }

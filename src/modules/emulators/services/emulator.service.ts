@@ -24,24 +24,24 @@ export class EmulatorService {
     private readonly activityLogService: ActivityLogService
   ) {}
 
-  async create(emulator: EmulatorDto) {
+  async create(emulator: EmulatorDto, userId: number) {
     const emulatorDetails = {
       ...emulator,
-      status: EmulatorStatus.available
+      status: EmulatorStatus.registered
     };
-    //todo change user after auth
     await this.activityLogService.log({
       action: Actions.CREATE_EMULATOR,
-      metadata: emulatorDetails
+      metadata: emulatorDetails,
+      user_id: userId
     });
     return this.emulatorRepository.insert(emulatorDetails);
   }
 
-  async update(id: string, emulator: Partial<EmulatorDto>) {
-    //todo change user after auth
+  async update(id: string, emulator: Partial<EmulatorDto>, userId: number) {
     await this.activityLogService.log({
       action: Actions.UPDATE_EMULATOR,
-      metadata: emulator
+      metadata: emulator,
+      user_id: userId
     });
     return this.emulatorRepository.update(id, emulator);
   }
@@ -63,24 +63,42 @@ export class EmulatorService {
     await this.emulatorRepository.delete(id);
   }
 
-  async linkEmulator(emulatorLinkDto: EmulatorLinkDto) {
-    //todo change user after auth
-    await this.activityLogService.log({
-      action: Actions.LINK_EMULATOR,
-      account_id: emulatorLinkDto.account_id,
-      device_id: emulatorLinkDto.device_id,
-      metadata: emulatorLinkDto
+  async linkEmulator(emulatorLinkDto: EmulatorLinkDto, userId: number) {
+    const alreadyLinked = await this.emulatorLinkedRepository.findOne({
+      where: {
+        user: { id: userId },
+        device: { device_id: emulatorLinkDto.device_id }
+      }
     });
-    await this.emulatorLinkedRepository.insert({
-      connected_at: undefined,
-      account: { id: emulatorLinkDto.account_id },
-      device: { device_id: emulatorLinkDto.device_id },
-      expiry_at: DateUtils.add(30, 'd')
-    });
+    if (!alreadyLinked) {
+      await this.activityLogService.log({
+        action: Actions.LINK_EMULATOR,
+        account_id: emulatorLinkDto.account_id,
+        device_id: emulatorLinkDto.device_id,
+        user_id: userId,
+        metadata: emulatorLinkDto
+      });
+      //expiry DateUtils.add(30, 'd')
+      const newLink = await this.emulatorLinkedRepository.insert({
+        connected_at: emulatorLinkDto.connected_at,
+        account: { id: emulatorLinkDto.account_id },
+        disconnected_at: null,
+        user: { id: userId },
+        device: { device_id: emulatorLinkDto.device_id },
+        expiry_at: emulatorLinkDto.expiry_at
+      });
+      return newLink?.identifiers[0]?.id as number;
+    } else {
+      console.log('Emulator already linked');
+      return alreadyLinked.id;
+    }
   }
 
-  async connectEmulator(emulatorLinkedId: string) {
-    await this.emulatorLinkedRepository.update(emulatorLinkedId, { connected_at: DateUtils.today() });
+  async connectEmulator(emulatorLinkedId: number, userId: number) {
+    await this.emulatorLinkedRepository.update(emulatorLinkedId, {
+      user: { id: userId },
+      connected_at: DateUtils.today()
+    });
   }
 
   async disconnectEmulator(emulatorLinkedId: string) {
@@ -100,7 +118,7 @@ export class EmulatorService {
       where: { device_id: deviceId },
       select: { status: true }
     });
-    return { available: availableCheck.status === EmulatorStatus.available };
+    return { available: availableCheck.status === EmulatorStatus.online };
   }
 
   getEmulatorCodes() {

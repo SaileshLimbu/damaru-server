@@ -2,6 +2,7 @@ import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGenerate
 import { Account } from '../../accounts/entities/account.entity';
 import { ActivityLog } from '../../activity_logs/entities/activity_log.entity';
 import { Role } from './role.entity';
+import { EmulatorLinked } from '../../emulators/entities/emulator-linked.entity';
 
 @Entity()
 export class User {
@@ -31,4 +32,7 @@ export class User {
 
   @OneToMany(() => ActivityLog, (activityLog) => activityLog.account)
   activityLogs: ActivityLog[];
+
+  @OneToMany(() => EmulatorLinked, (connection) => connection.device)
+  emulatorConnections: EmulatorLinked[];
 }

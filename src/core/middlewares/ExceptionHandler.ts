@@ -32,7 +32,7 @@ export class ExceptionHandler implements ExceptionFilter {
 
     let statusCode: number;
     let message: string | object = exception.message;
-
+    console.log('interception exception', exception)
     if (exception instanceof CustomException) {
       statusCode = exception.statusCode;
     } else if (exception instanceof HttpException) {

@@ -1,10 +1,11 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { EmulatorDto } from '../dtos/emulator.dto';
 import { EmulatorService } from '../services/emulator.service';
 import { EmulatorLinkDto } from '../dtos/emulator-link.dto';
 import { JwtAuthGuard } from '../../../core/guards/jwt.guard';
 import { SuperAdmin } from '../../../core/guards/super_admin.guard';
+import { AuthUser } from '../../../common/interfaces/AuthUser';
 
 @ApiTags('Emulators')
 @ApiBearerAuth()
@@ -48,8 +49,8 @@ export class EmulatorController {
     description: 'Emulator Create'
   })
   @ApiConsumes('application/json', 'text/plain')
-  create(@Body() createUserDto: EmulatorDto) {
-    return this.emulatorService.create(createUserDto);
+  create(@Body() createUserDto: EmulatorDto, @Req() authUser: AuthUser) {
+    return this.emulatorService.create(createUserDto, authUser.user.sub);
   }
 
   @Put(':id')
@@ -58,8 +59,8 @@ export class EmulatorController {
     description: 'Emulator Update'
   })
   @ApiConsumes('application/json', 'text/plain')
-  update(@Param('id') id: string, @Body() updateUserDto: Partial<EmulatorDto>) {
-    return this.emulatorService.update(id, updateUserDto);
+  update(@Param('id') id: string, @Body() updateUserDto: Partial<EmulatorDto>, @Req() authUser: AuthUser) {
+    return this.emulatorService.update(id, updateUserDto, authUser.user.sub);
   }
 
   @Delete(':id')
@@ -74,7 +75,7 @@ export class EmulatorController {
   })
   @ApiConsumes('application/json', 'text/plain')
   @Post('link-emulator')
-  linkEmulator(@Body() emulatorLinkDto: EmulatorLinkDto) {
-    return this.emulatorService.linkEmulator(emulatorLinkDto);
+  linkEmulator(@Body() emulatorLinkDto: EmulatorLinkDto, @Req() authUser: AuthUser) {
+    return this.emulatorService.linkEmulator(emulatorLinkDto, authUser.user.sub);
   }
 }

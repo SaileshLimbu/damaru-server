@@ -37,8 +37,9 @@ async function bootstrap() {
     origin: ['*'],
     methods: ['GET', 'PUT', 'PATCH', 'POST', 'DELETE'],
     optionsSuccessStatus: 200,
-    credentials: true
+    // credentials: true
   });
+
 
   app.use(bodyParser.text());
 

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsString } from 'class-validator';
+import { IsDate, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class EmulatorLinkDto {
   @ApiProperty()
@@ -8,5 +8,18 @@ export class EmulatorLinkDto {
 
   @ApiProperty()
   @IsNumber()
-  account_id: number;
+  user_id: number;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsNumber()
+  account_id?: number;
+
+  @IsOptional()
+  @IsDate()
+  connected_at?: Date;
+
+  @IsOptional()
+  @IsDate()
+  expiry_at?: Date;
 }
