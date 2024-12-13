@@ -64,13 +64,13 @@ export class EmulatorService {
   }
 
   async linkEmulator(emulatorLinkDto: EmulatorLinkDto, userId: number) {
-    const alreadyLinked = await this.emulatorLinkedRepository.findOne({
-      where: {
-        user: { id: userId },
-        device: { device_id: emulatorLinkDto.device_id }
-      }
-    });
-    if (!alreadyLinked) {
+    // const alreadyLinked = await this.emulatorLinkedRepository.findOne({
+    //   where: {
+    //     user: { id: userId },
+    //     device: { device_id: emulatorLinkDto.device_id }
+    //   }
+    // });
+    // if (!alreadyLinked) {
       await this.activityLogService.log({
         action: Actions.LINK_EMULATOR,
         account_id: emulatorLinkDto.account_id,
@@ -88,10 +88,10 @@ export class EmulatorService {
         expiry_at: emulatorLinkDto.expiry_at
       });
       return newLink?.identifiers[0]?.id as number;
-    } else {
-      console.log('Emulator already linked');
-      return alreadyLinked.id;
-    }
+    // } else {
+    //   console.log('Emulator already linked');
+    //   return alreadyLinked.id;
+    // }
   }
 
   async connectEmulator(emulatorLinkedId: number, userId: number) {

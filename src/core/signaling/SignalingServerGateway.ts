@@ -6,17 +6,20 @@ import {
   OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
-  WebSocketServer
-} from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
-import { JwtService } from '@nestjs/jwt';
-import { WsJwtGuard } from '../guards/wsjwt.guard';
-import { UseGuards } from '@nestjs/common';
-import { EmulatorService } from '../../modules/emulators/services/emulator.service';
-import { EmulatorStatus } from '../../modules/emulators/interfaces/emulator.status';
-import { ActivityLogService } from '../../modules/activity_logs/services/activity_log.service';
-import { Actions } from '../../modules/activity_logs/enums/Actions';
-import { exec } from 'child_process';
+  WebSocketServer,
+  WsException
+} from "@nestjs/websockets";
+import { Server, Socket } from "socket.io";
+import { JwtService } from "@nestjs/jwt";
+import { WsJwtGuard } from "../guards/wsjwt.guard";
+import { UseGuards } from "@nestjs/common";
+import { EmulatorService } from "../../modules/emulators/services/emulator.service";
+import { EmulatorStatus } from "../../modules/emulators/interfaces/emulator.status";
+import { ActivityLogService } from "../../modules/activity_logs/services/activity_log.service";
+import { Actions } from "../../modules/activity_logs/enums/Actions";
+import { exec } from "child_process";
+import { EmulatorAdmin } from "../guards/emulator_admin.guard";
+import { JwtToken } from "../../modules/auth/interfaces/jwt_token";
 
 @WebSocketGateway({
   namespace: 'signaling',
@@ -35,17 +38,20 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
   server: Server;
   private connections = new Map<string, Socket>();
 
-  @UseGuards(WsJwtGuard)
+  @UseGuards(WsJwtGuard, EmulatorAdmin)
   @SubscribeMessage('StartStreaming')
   async handleStartStreaming(@ConnectedSocket() client: Socket, @MessageBody() { deviceId }: { deviceId: string }) {
-    const user = 2;
+    console.log('Started', { message: 'Streaming started.' });
+    console.log('user', client.handshake['user'] as JwtToken )
+
+    const user = client.handshake['user'].sub
     this.connections.set(deviceId, client);
-    await this.emulatorService.update(deviceId, { status: EmulatorStatus.online }, user);
     const linkedEmulatorId = await this.emulatorService.linkEmulator(
       { device_id: deviceId, user_id: user, account_id: null, expiry_at: null },
       user
     );
     await this.emulatorService.connectEmulator(linkedEmulatorId, user);
+    await this.emulatorService.update(deviceId, { status: EmulatorStatus.online }, user);
     console.log('Started', { message: 'Streaming started.' });
     client.emit('Started', { message: 'Streaming started.' });
     await this.activityLogService.log({
@@ -56,7 +62,7 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
     });
   }
 
-  @UseGuards(WsJwtGuard)
+  @UseGuards(WsJwtGuard)//AndroidAccount or AndroidAdmin too
   @SubscribeMessage('Offer')
   async handleOffer(
     @ConnectedSocket() client: Socket,
@@ -78,6 +84,7 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
     emulatorSocket.emit('Offer', { sdp, clientId: client.id });
   }
 
+  @UseGuards(WsJwtGuard, EmulatorAdmin)
   @SubscribeMessage('Answer')
   async handleAnswer(@MessageBody() { clientId, answer }: { clientId: string; answer }) {
     console.log('sending answer');
@@ -87,12 +94,13 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
     }
   }
 
+  @UseGuards(WsJwtGuard, EmulatorAdmin) //EmulatorAdmin or AndroidAccount or AndroidAdmin
   @SubscribeMessage('IceCandidate')
   handleIceCandidate(@MessageBody() { clientId, iceCandidate }: { clientId: string, iceCandidate:RTCIceCandidate }) {
     console.log('ice candidate trigger', clientId, iceCandidate)
     this.server.to(clientId).emit('IceCandidate', iceCandidate)
   }
-
+  @UseGuards(WsJwtGuard, EmulatorAdmin)
   @SubscribeMessage('RunCommand')
   async runAdb(@MessageBody() { adbCmd }: { adbCmd: string }) {
     console.log('RunCommand', adbCmd)
@@ -110,6 +118,8 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
       });
     });
   };
+
+  @UseGuards(WsJwtGuard) //AndroidAccount or AndroidAdmin
   @SubscribeMessage('IceCandidateToEmulator')
   handleIceCandidateToEmulator(@MessageBody() { connectionId, iceCandidate }: { connectionId: string, iceCandidate: RTCIceCandidate }) {
     console.log('ice candidate to server trigger', connectionId, iceCandidate)
@@ -120,26 +130,26 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
   afterInit(server: Server): any {
     server.use((socket: Socket, next) => {
       try {
-        console.log('afterinit');
         let auth_token = socket.handshake.headers.authorization;
         // get the token itself without "Bearer"
         auth_token = auth_token.split(' ')[1];
         console.log({ auth_token });
         const json = this.jwtService.verify(auth_token);
         console.log(json);
+        console.log('Auth token validated!')
         next();
       } catch (e) {
         console.log('on error');
-        next(new Error('Unauthorized'));
+        next(new WsException('Unauthorized'));
       }
     });
   }
 
   handleConnection(client: Socket): any {
-    console.log('handleconnection', client.id);
+    console.log('Client connected', client.id);
   }
 
   handleDisconnect(client: Socket): any {
-    console.log(client.data);
+    console.log('Client disconnected', client.id);
   }
 }

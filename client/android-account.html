@@ -20,14 +20,14 @@
 <script>
   const remoteVideoEl = document.querySelector('#remote-video');
 
-  const connectionId = "AndroidAccount1"; // ID of the emulator to connect to
-  const androidEmulator = 'Emulator1'; // Unique ID for the emulator
+  const connectionId = "SamsungGalaxyS25"; // ID of the emulator to connect to
+  const androidEmulator = 'SamsungGalaxyS25'; // Unique ID for the emulator
   const signalingServer = "ws://localhost:3000/signaling"; // Socket.IO server URL
   const socketOptions = {
     transportOptions: {
       polling: {
         extraHeaders: {
-          Authorization: 'Bearer YOUR_JWT_TOKEN', // Replace with your actual JWT token
+          Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjMsImFjY291bnQiOiJEaXBlc2ggTWFuYW5kaGFyIiwiZW1haWwiOiJhbmRyb2lkQGdtYWlsLmNvbSIsInJvbGUiOiJBbmRyb2lkVXNlciIsInN1YlJvbGUiOiJBbmRyb2lkQWRtaW4iLCJpYXQiOjE3MzQwNjMzNjksImV4cCI6MTczNjY1NTM2OX0.hWD5otjHqDcU1UoFBo_bKQ3_5vSR4OyTLNhqrjr4mEM', // Replace with your actual JWT token
         }
       }
     }
