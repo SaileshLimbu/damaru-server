@@ -11,11 +11,13 @@
 <body>
 <h1>Android Emulator</h1>
 <button id='start-streaming'>Start Streaming</button>
+<!--<video class="video-player" id="local-video" autoplay playsinline controls></video>-->
+
 <pre id='log'></pre>
 
 <script>
-  const deviceId = 'Emulator1'; // Unique ID for the emulator
-  const signalingServer = 'ws://localhost:3000/signaling'; // Socket.IO server
+  const androidEmulator = 'Emulator1'; // Unique ID for the emulator
+  const signalingServer = 'http://localhost:3000/signaling'; // Socket.IO server
   const socketOptions = {
     transportOptions: {
       polling: {
@@ -26,72 +28,126 @@
     }
   };
   const socket = io(signalingServer, socketOptions); // Connect to namespace
+  // const localVideoEl = document.querySelector('#local-video');
 
-  let peerConnections = {};
-  let adbDataChannel;
-  const pcConstraints = {
-    'optional': [
-      {'DtlsSrtpKeyAgreement': true},
-    ],
-  };
-  const servers = {'iceServers': [
-      {url: 'stun:stun.l.google.com:19302'},
-      {url: 'stun:stun1.l.google.com:19302'},
-      {url: 'stun:stun2.l.google.com:19302'},
-      {url: 'stun:stun3.l.google.com:19302'},
-      {url: 'stun:stun4.l.google.com:19302'}
-    ]};
-  const pc = new RTCPeerConnection(servers, pcConstraints);
+  // A function to execute the ADB command
+
+  let localStream; //a var to hold the local video stream
+  let remoteStream; //a var to hold the remote video stream
+  let peerConnection; //the peerConnection that the two clients use to talk
+
+  let peerConfiguration = {
+    iceServers:[
+      {
+        urls:[
+          'stun:stun.l.google.com:19302',
+          'stun:stun1.l.google.com:19302'
+        ]
+      }
+    ]
+  }
 
   const log = (message) => {
     document.getElementById('log').textContent += `${message}\n`;
   };
-  async function captureScreen() {
-    const displayMediaOptions = {
-      video: {
-        cursor: "always"
-      },
-      audio: false
-    };
-    return await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
+  const fetchUserMedia = ()=>{
+    return new Promise(async(resolve, reject)=>{
+      try{
+        const displayMediaOptions = {
+          video: {
+            cursor: "always"
+          },
+          audio: false
+        };
+        const stream =   await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
+        // localVideoEl.srcObject = stream;
+        localStream = stream;
+        resolve();
+      }catch(err){
+        log(err);
+        reject()
+      }
+    })
   }
-  socket.on('connect', () => {
-    log('Socket.IO connected.');
+  const createPeerConnection = (clientId)=>{
+    return new Promise(async(resolve, reject)=>{
+      //RTCPeerConnection is the thing that creates the connection
+      //we can pass a config object, and that config object can contain stun servers
+      //which will fetch us ICE candidates
+      peerConnection = await new RTCPeerConnection(peerConfiguration)
+      remoteStream = new MediaStream()
 
-    // Handle Start Streaming button
-    document.getElementById('start-streaming').addEventListener('click', async () => {
-      socket.emit('StartStreaming', { deviceId });
-      log('StartStreaming event sent.');
-      await navigator.mediaDevices.getUserMedia({video: true }, (stream) => {
-        pc.addTrack(stream)
+      localStream.getVideoTracks().forEach(track=>{
+        console.log("Adding track to PeerConnection:", track);
+        //add localtracks so that they can be sent once the connection is established
+        peerConnection.addTrack(track,localStream);
+      })
+
+      peerConnection.addEventListener("signalingstatechange", (event) => {
+        console.log(event);
+        console.log(peerConnection.signalingState)
       });
 
-      pc.onicecandidate = (e) => {
-        log(`ice candidate`);
-        if (e.candidate) {
-          socket.emit('IceCandidate', { candidate: e.candidate });
+      peerConnection.addEventListener('icecandidate',e=>{
+        console.log('........Ice candidate found!......')
+        console.log(e)
+        if(e.candidate){
+          socket.emit('IceCandidate',{
+            iceCandidate: e.candidate,
+            clientId
+          })
         }
+      })
+      peerConnection.addEventListener('iceconnectionstatechange', () => {
+        console.log("ICE Connection State:", peerConnection.iceConnectionState);
+      });
+
+      peerConnection.addEventListener('connectionstatechange', () => {
+        console.log("PeerConnection State:", peerConnection.connectionState);
+      });
+      peerConnection.ondatachannel = (event) => {
+        const dataChannel = event.channel;
+        dataChannel.onmessage = (event) => {
+          socket.emit('RunCommand', {adbCmd: event.data })
+          console.log('Received message from Peer 1:', event.data);
+        };
       };
+
+      resolve();
+    })
+  }
+
+  socket.on('connect', () => {
+    log('Socket.IO connected.');
+    // Handle Start Streaming button
+    document.getElementById('start-streaming').addEventListener('click', async () => {
+      await fetchUserMedia();
+      socket.emit('StartStreaming', { deviceId: androidEmulator})
     });
   });
 
-  // Listen for Offer from server (client connecting)
-  // Peer A (Emulator) - Setup data channel and handle connection
   socket.on('Offer', async (message) => {
     const { clientId, sdp } = message;
-    log(`Received offer from client: ${clientId}`);
+    console.log(`Received offer from client: ${clientId}`);
+    console.log(`Received offer from sdp: ${sdp}`);
+    await createPeerConnection(clientId)
 
-    peerConnections[clientId] = pc;
-
-    // Handle SDP offer and create an answer
-    await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-
-    // Send the answer back to the server
-    socket.emit('Answer', { clientId, sdp: answer.sdp });
-    log(`Sent answer to client: ${clientId}`);
+    // // Handle SDP offer and create an answer
+    await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+    //
+    // // Send the answer back to the server
+    socket.emit('Answer', { clientId, answer });
+    console.log(`Sent answer to client: ${clientId}`);
   });
+
+  socket.on('IceCandidateToEmulator', (candidate) => {
+    console.log('Adding ice candidate', candidate)
+    if(candidate) {
+      peerConnection.addIceCandidate(candidate)
+    }
+  })
 
   socket.on('disconnect', () => log('Socket.IO connection closed.'));
 

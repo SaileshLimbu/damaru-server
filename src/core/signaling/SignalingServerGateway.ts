@@ -16,6 +16,7 @@ import { EmulatorService } from '../../modules/emulators/services/emulator.servi
 import { EmulatorStatus } from '../../modules/emulators/interfaces/emulator.status';
 import { ActivityLogService } from '../../modules/activity_logs/services/activity_log.service';
 import { Actions } from '../../modules/activity_logs/enums/Actions';
+import { exec } from 'child_process';
 
 @WebSocketGateway({
   namespace: 'signaling',
@@ -78,31 +79,48 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
   }
 
   @SubscribeMessage('Answer')
-  async handleAnswer(@MessageBody() { clientId, sdp }: { clientId: string; sdp: string }) {
+  async handleAnswer(@MessageBody() { clientId, answer }: { clientId: string; answer }) {
     console.log('sending answer');
-    console.log({ clientId, sdp });
-    // if (clientId) {
-    this.server.to(clientId).emit('Answer', { sdp });
-    // }
-  }
-
-  @SubscribeMessage('datachannelcreate')
-  handleStopStreaming(@MessageBody() { connectionId }: { connectionId: string }) {
-    // this.connections.delete(connectionId);
-    this.server.emit('datachannelcreate', { message: 'Streaming stopped.' });
+    console.log({ clientId, answer });
+    if (clientId) {
+       this.server.to(clientId).emit('Answer', answer );
+    }
   }
 
   @SubscribeMessage('IceCandidate')
-  handleIceCandidate(@MessageBody() { clientId, candidate }: { clientId: string, candidate:any }) {
-    console.log('ice candidate trigger', clientId, candidate)
-    this.server.to(clientId).emit('IceCandidate', { clientId, candidate})
+  handleIceCandidate(@MessageBody() { clientId, iceCandidate }: { clientId: string, iceCandidate:RTCIceCandidate }) {
+    console.log('ice candidate trigger', clientId, iceCandidate)
+    this.server.to(clientId).emit('IceCandidate', iceCandidate)
+  }
+
+  @SubscribeMessage('RunCommand')
+  async runAdb(@MessageBody() { adbCmd }: { adbCmd: string }) {
+    console.log('RunCommand', adbCmd)
+    await this.executeADBCommand(adbCmd)
+  }
+
+  executeADBCommand = (command) => {
+    return new Promise((resolve, reject) => {
+      exec(`${command}`, (err, stdout, stderr) => {
+        if (err) {
+          reject(`Error executing command: ${stderr}`);
+        } else {
+          resolve(stdout);
+        }
+      });
+    });
+  };
+  @SubscribeMessage('IceCandidateToEmulator')
+  handleIceCandidateToEmulator(@MessageBody() { connectionId, iceCandidate }: { connectionId: string, iceCandidate: RTCIceCandidate }) {
+    console.log('ice candidate to server trigger', connectionId, iceCandidate)
+    const emulatorSocket = this.connections.get(connectionId);
+    emulatorSocket.emit('IceCandidateToEmulator', iceCandidate )
   }
 
   afterInit(server: Server): any {
     server.use((socket: Socket, next) => {
       try {
         console.log('afterinit');
-
         let auth_token = socket.handshake.headers.authorization;
         // get the token itself without "Bearer"
         auth_token = auth_token.split(' ')[1];
@@ -112,27 +130,13 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
         next();
       } catch (e) {
         console.log('on error');
-        // next(new Error('some error'));
-        next();
-        // throw new UnauthorizedException('Not uthorized!!')
+        next(new Error('Unauthorized'));
       }
     });
   }
 
   handleConnection(client: Socket): any {
     console.log('handleconnection', client.id);
-
-    // try {
-    //   let auth_token = client.handshake.headers.authorization;
-    //   // get the token itself without "Bearer"
-    //   auth_token = auth_token.split(' ')[1];
-    //   console.log({ auth_token });
-    //   const json = this.jwtService.verify(auth_token);
-    //   console.log(json);
-    // } catch (e) {
-    //   client.disconnect();
-    //   // throw new UnauthorizedException('Not uthorized!!')
-    // }
   }
 
   handleDisconnect(client: Socket): any {

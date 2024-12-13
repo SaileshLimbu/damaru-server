@@ -10,102 +10,150 @@
 <body>
 <h1>Android Account</h1>
 <button id="connect-emulator">Connect to Emulator</button>
+<video class="video-player" id="remote-video" autoplay playsinline controls style="display: none;"></video>
 <div>
   <input type="text" id="adbCommand" placeholder="Enter ADB command" />
   <button id="sendCommand">Send Command</button>
 </div>
 <pre id="log"></pre>
-<video id="remoteVideo" autoplay playsinline></video>
 
 <script>
-  const connectionId = "Emulator1"; // ID of the emulator to connect to
+  const remoteVideoEl = document.querySelector('#remote-video');
+
+  const connectionId = "AndroidAccount1"; // ID of the emulator to connect to
+  const androidEmulator = 'Emulator1'; // Unique ID for the emulator
   const signalingServer = "ws://localhost:3000/signaling"; // Socket.IO server URL
   const socketOptions = {
     transportOptions: {
       polling: {
         extraHeaders: {
-          Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImFjY291bnQiOiJBbmRyb2lkQWNjb3VudDEiLCJlbWFpbCI6ImFuZHJvaWRhZG1pbkBkYW1hcnUuY29tIiwicm9sZSI6IkFuZHJvaWRVc2VyIiwic3ViUm9sZSI6IkFuZHJvaWRBY2NvdW50IiwiaWF0IjoxNzMzODQ5MzA4LCJleHAiOjE3MzM4NTI5MDh9.abEwfrq2Q781Nd6eYbxELHX3hCo6Yj5Wvx6lb92QUek',
+          Authorization: 'Bearer YOUR_JWT_TOKEN', // Replace with your actual JWT token
         }
       }
     }
   };
   const socket = io(signalingServer, socketOptions); // Initialize Socket.IO client
 
-  let pc;
-  let dataChannel;
-
   const log = (message) => {
     document.getElementById("log").textContent += `${message}\n`;
   };
-
-  const setupPeerConnection = () => {
-
-    pc.onicecandidate = (e) => {
-      if (e.candidate) {
-        socket.emit("IceCandidate", { connectionId, candidate: e.candidate });
+  let peerConfiguration = {
+    iceServers:[
+      {
+        urls:[
+          'stun:stun.l.google.com:19302',
+          'stun:stun1.l.google.com:19302'
+        ]
       }
-    };
+    ]
+  }
+  let peerConnection; // The peerConnection that the two clients use to talk
+  let remoteStream; // A var to hold the remote video stream
 
+  const addDummyTrack = (pc) => {
+    // Create a blank video track
+    const canvas = document.createElement("canvas");
+    canvas.width = 640;
+    canvas.height = 480;
+
+    const stream = canvas.captureStream(1); // Capture at 1 FPS
+    const dummyTrack = stream.getVideoTracks()[0];
+
+    console.log("Adding dummy video track to PeerConnection:", dummyTrack);
+    pc.addTrack(dummyTrack, stream);
+  };
+
+  const createPeerConnection = ()=>{
+    return new Promise(async(resolve, reject)=>{
+      peerConnection = await new RTCPeerConnection(peerConfiguration);
+      remoteStream = new MediaStream();
+      remoteVideoEl.srcObject = remoteStream;
+      addDummyTrack(peerConnection);
+      const dataChannel = peerConnection.createDataChannel('adb-command');
+      dataChannel.onopen = () => {
+        console.log('Data channel has been opened');
+      };
+
+      document.getElementById('sendCommand').addEventListener('click', () => {
+        const adbCommand = document.getElementById('adbCommand').value; // Get the input text
+        if (adbCommand && dataChannel.readyState === 'open') {
+          dataChannel.send(adbCommand);  // Send the command via the data channel
+          console.log('Command sent:', adbCommand);
+        }
+      });
+
+      peerConnection.addEventListener("signalingstatechange", (event) => {
+        console.log(event);
+        console.log(peerConnection.signalingState);
+      });
+
+      peerConnection.addEventListener('icecandidate', e => {
+        console.log('ICE candidate found!');
+        console.log(e);
+        if (e.candidate) {
+          socket.emit('IceCandidateToEmulator', {
+            iceCandidate: e.candidate,
+            connectionId: androidEmulator
+          });
+        }
+      });
+
+      peerConnection.addEventListener('track', (event) => {
+        console.log("Track event received:", event);
+        console.log("Streams associated with the track:", event.streams);
+
+        // Check if the event contains a video track
+        if (event.streams[0] && event.streams[0].getVideoTracks().length > 0) {
+          // Show the video player only when a video track is available
+          remoteVideoEl.style.display = "block";
+        }
+
+        event.streams[0]?.getTracks().forEach((track) => {
+          remoteStream.addTrack(track);
+          console.log("Added track to remoteStream:", track);
+        });
+      });
+
+      peerConnection.addEventListener('iceconnectionstatechange', () => {
+        console.log("ICE Connection State:", peerConnection.iceConnectionState);
+      });
+
+      peerConnection.addEventListener('connectionstatechange', () => {
+        console.log("PeerConnection State:", peerConnection.connectionState);
+      });
+
+      resolve();
+    });
   };
 
   socket.on("connect", () => {
     log("Socket.IO connected.");
     document.getElementById("connect-emulator").addEventListener("click", async () => {
-      const pcConstraints = {
-        'optional': [
-          {'DtlsSrtpKeyAgreement': true},
-        ],
-      };
-      const servers = {'iceServers': [
-          {url: 'stun:stun.l.google.com:19302'},
-          {url: 'stun:stun1.l.google.com:19302'},
-          {url: 'stun:stun2.l.google.com:19302'},
-          {url: 'stun:stun3.l.google.com:19302'},
-          {url: 'stun:stun4.l.google.com:19302'}
-        ]};
-      pc = new RTCPeerConnection(servers, pcConstraints);
-
-      pc.remote.ontrack(event => {
-        log('event from remote', event)
-        const remoteVideo = document.getElementById("remoteVideo");
-        if(!event.streams[0]) {
-          remoteVideo.srcObject = event.streams[0];
-          log("Remote stream added.");
-        }
-      })
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      socket.emit("Offer", { connectionId, sdp: offer.sdp.toString() });
-      log("Sent offer to emulator.");
-      pc.onicecandidate = (e) => {
-        log(`ice candidate`);
-        if (e.candidate) {
-          socket.emit('IceCandidate', { clientId, candidate: e.candidate });
-        }
-      };
+      await createPeerConnection();
+      try {
+        console.log("Creating offer...");
+        const offer = await peerConnection.createOffer();
+        console.log(offer);
+        await peerConnection.setLocalDescription(offer);
+        socket.emit('Offer', { connectionId: androidEmulator, sdp: offer.sdp }); // Send offer to signalingServer
+      } catch (err) {
+        console.log(err);
+      }
     });
   });
 
-
-    socket.on("Answer", async (message) => {
-    const { sdp } = message;
-    await pc.setRemoteDescription(new RTCSessionDescription({ type: "answer", sdp }));
-    log("Received answer from emulator.");
-    setupPeerConnection()
-  });
-
-  socket.on("IceCandidate", async (message) => {
-    const { candidate } = message;
-    try {
-      await pc.addIceCandidate(new RTCIceCandidate(candidate));
-      log("Added ICE candidate from emulator.");
-    } catch (error) {
-      log("Error adding received ICE candidate: " + error);
-    }
+  socket.on('Answer', async (answer) => {
+    console.log(answer);
+    await peerConnection.setRemoteDescription(answer);
   });
 
   socket.on("disconnect", () => log("Socket.IO connection closed."));
-
+  socket.on('IceCandidate', (candidate) => {
+    console.log('Adding ICE candidate to android', candidate);
+    if (candidate) {
+      peerConnection.addIceCandidate(candidate);
+    }
+  });
 </script>
 </body>
 </html>
