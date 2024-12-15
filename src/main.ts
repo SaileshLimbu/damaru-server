@@ -45,7 +45,7 @@ async function bootstrap() {
 
   app.useLogger(logger);
   // Error Handler
-  app.useGlobalFilters(new ExceptionHandler(logger));
+  app.useGlobalFilters(new ExceptionHandler(logger, configService));
 
   // Resolve EncryptionService manually
   const encryptionService = app.get(EncryptionService);

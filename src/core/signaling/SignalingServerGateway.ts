@@ -38,45 +38,45 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
   server: Server;
   private connections = new Map<string, Socket>();
 
-  @UseGuards(WsJwtGuard, EmulatorAdmin)
+  // @UseGuards(WsJwtGuard, EmulatorAdmin)
   @SubscribeMessage('StartStreaming')
   async handleStartStreaming(@ConnectedSocket() client: Socket, @MessageBody() { deviceId }: { deviceId: string }) {
     console.log('Started', { message: 'Streaming started.' });
     console.log('user', client.handshake['user'] as JwtToken )
 
-    const user = client.handshake['user'].sub
+    // const user = client.handshake['user'].sub
     this.connections.set(deviceId, client);
-    const linkedEmulatorId = await this.emulatorService.linkEmulator(
-      { device_id: deviceId, user_id: user, account_id: null, expiry_at: null },
-      user
-    );
-    await this.emulatorService.connectEmulator(linkedEmulatorId, user);
-    await this.emulatorService.update(deviceId, { status: EmulatorStatus.online }, user);
+    // const linkedEmulatorId = await this.emulatorService.linkEmulator(
+    //   { device_id: deviceId, user_id: user, account_id: null, expiry_at: null },
+    //   user
+    // );
+    // await this.emulatorService.connectEmulator(linkedEmulatorId, user);
+    // await this.emulatorService.update(deviceId, { status: EmulatorStatus.online }, user);
     console.log('Started', { message: 'Streaming started.' });
     client.emit('Started', { message: 'Streaming started.' });
-    await this.activityLogService.log({
-      user_id: user,
-      device_id: deviceId,
-      action: Actions.START_STREAMING,
-      metadata: { message: 'Streaming started.', startedBy: user, on: Date.now() }
-    });
+    // await this.activityLogService.log({
+    //   user_id: user,
+    //   device_id: deviceId,
+    //   action: Actions.START_STREAMING,
+    //   metadata: { message: 'Streaming started.', startedBy: user, on: Date.now() }
+    // });
   }
 
-  @UseGuards(WsJwtGuard)//AndroidAccount or AndroidAdmin too
+  // @UseGuards(WsJwtGuard)//AndroidAccount or AndroidAdmin too
   @SubscribeMessage('Offer')
   async handleOffer(
     @ConnectedSocket() client: Socket,
     @MessageBody()
     {
-      connectionId,
+      deviceId,
       sdp
     }: {
-      connectionId: string;
+      deviceId: string;
       sdp: string;
     }
   ) {
     console.log('offering');
-    const emulatorSocket = this.connections.get(connectionId);
+    const emulatorSocket = this.connections.get(deviceId);
     if (!emulatorSocket) {
       client.emit('Error', { message: 'Emulator not found.' });
       return;
@@ -84,23 +84,30 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
     emulatorSocket.emit('Offer', { sdp, clientId: client.id });
   }
 
-  @UseGuards(WsJwtGuard, EmulatorAdmin)
+  // @UseGuards(WsJwtGuard, EmulatorAdmin)
   @SubscribeMessage('Answer')
-  async handleAnswer(@MessageBody() { clientId, answer }: { clientId: string; answer }) {
+  async handleAnswer(@MessageBody() { clientId, sdp }: { clientId: string; sdp: string }) {
     console.log('sending answer');
-    console.log({ clientId, answer });
+    console.log({ clientId, sdp });
     if (clientId) {
-       this.server.to(clientId).emit('Answer', answer );
+       this.server.to(clientId).emit('Answer', { sdp } );
     }
   }
 
-  @UseGuards(WsJwtGuard, EmulatorAdmin) //EmulatorAdmin or AndroidAccount or AndroidAdmin
+  // @UseGuards(WsJwtGuard, EmulatorAdmin) //EmulatorAdmin or AndroidAccount or AndroidAdmin
   @SubscribeMessage('IceCandidate')
-  handleIceCandidate(@MessageBody() { clientId, iceCandidate }: { clientId: string, iceCandidate:RTCIceCandidate }) {
+  handleIceCandidate(@MessageBody() { clientId, iceCandidate, isEmulator }: { clientId: string, iceCandidate:RTCIceCandidate, isEmulator: boolean }) {
     console.log('ice candidate trigger', clientId, iceCandidate)
-    this.server.to(clientId).emit('IceCandidate', iceCandidate)
+    if(!isEmulator) {
+      console.log('ice candidate to server trigger', clientId, iceCandidate)
+      console.log('connections', this.connections)
+      const emulatorSocket = this.connections.get(clientId);
+      emulatorSocket.emit('IceCandidate', { iceCandidate });
+    } else {
+      this.server.to(clientId).emit('IceCandidate', { iceCandidate });
+    }
   }
-  @UseGuards(WsJwtGuard, EmulatorAdmin)
+  // @UseGuards(WsJwtGuard, EmulatorAdmin)
   @SubscribeMessage('RunCommand')
   async runAdb(@MessageBody() { adbCmd }: { adbCmd: string }) {
     console.log('RunCommand', adbCmd)
@@ -118,31 +125,22 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
       });
     });
   };
-
-  @UseGuards(WsJwtGuard) //AndroidAccount or AndroidAdmin
-  @SubscribeMessage('IceCandidateToEmulator')
-  handleIceCandidateToEmulator(@MessageBody() { connectionId, iceCandidate }: { connectionId: string, iceCandidate: RTCIceCandidate }) {
-    console.log('ice candidate to server trigger', connectionId, iceCandidate)
-    const emulatorSocket = this.connections.get(connectionId);
-    emulatorSocket.emit('IceCandidateToEmulator', iceCandidate )
-  }
-
   afterInit(server: Server): any {
-    server.use((socket: Socket, next) => {
-      try {
-        let auth_token = socket.handshake.headers.authorization;
-        // get the token itself without "Bearer"
-        auth_token = auth_token.split(' ')[1];
-        console.log({ auth_token });
-        const json = this.jwtService.verify(auth_token);
-        console.log(json);
-        console.log('Auth token validated!')
-        next();
-      } catch (e) {
-        console.log('on error');
-        next(new WsException('Unauthorized'));
-      }
-    });
+    // server.use((socket: Socket, next) => {
+    //   try {
+    //     let auth_token = socket.handshake.headers.authorization;
+    //     // get the token itself without "Bearer"
+    //     auth_token = auth_token.split(' ')[1];
+    //     console.log({ auth_token });
+    //     const json = this.jwtService.verify(auth_token);
+    //     console.log(json);
+    //     console.log('Auth token validated!')
+    //     next();
+    //   } catch (e) {
+    //     console.log('on error');
+    //     next(new WsException('Unauthorized'));
+    //   }
+    // });
   }
 
   handleConnection(client: Socket): any {

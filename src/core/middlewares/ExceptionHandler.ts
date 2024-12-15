@@ -1,13 +1,8 @@
-import {
-  ArgumentsHost,
-  Catch,
-  ExceptionFilter,
-  HttpException,
-  HttpStatus,
-  Logger,
-} from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { Response } from 'express';
 import { CustomException } from '../../common/exceptions/CustomException';
+import { ConfigService } from '@nestjs/config';
+import { Environments } from '../../common/interfaces/environments';
 
 /**
  * CustomException class implements the NestJS ExceptionFilter interface
@@ -19,7 +14,10 @@ export class ExceptionHandler implements ExceptionFilter {
    * Constructor to inject the Logger service.
    * @param logger - The logger instance from nestjs-pino.
    */
-  constructor(private readonly logger: Logger) {}
+  constructor(
+    private readonly logger: Logger,
+    private readonly configService: ConfigService
+  ) {}
 
   /**
    * Method to catch and handle exceptions.
@@ -32,7 +30,7 @@ export class ExceptionHandler implements ExceptionFilter {
 
     let statusCode: number;
     let message: string | object = exception.message;
-    console.log('interception exception', exception)
+    console.log('interception exception', exception);
     if (exception instanceof CustomException) {
       statusCode = exception.statusCode;
     } else if (exception instanceof HttpException) {
@@ -47,15 +45,25 @@ export class ExceptionHandler implements ExceptionFilter {
       exception.message,
       JSON.stringify({
         statusCode,
-        stack: exception.stack,
-      }),
+        stack: exception.stack
+      })
     );
 
-    // Send the error response
-    response.status(statusCode).json({
-      statusCode,
-      message,
-      stack: exception.stack,
-    });
+    const env = this.configService.get<string>('ENVIRONMENT')
+    if(env == Environments.DEVELOPMENT) {
+      // Send the error response
+      response.status(statusCode).json({
+        statusCode,
+        message,
+        stack: exception.stack
+      });
+    } else {
+      // Send the error response
+      response.status(statusCode).json({
+        statusCode,
+        message
+      });
+    }
+
   }
 }

@@ -17,12 +17,12 @@
 
 <script>
   const androidEmulator = 'SamsungGalaxyS25'; // Unique ID for the emulator
-  const signalingServer = 'http://localhost:3000/signaling'; // Socket.IO server
+  const signalingServer = 'ws://localhost:3000/signaling'; // Socket.IO server
   const socketOptions = {
     transportOptions: {
       polling: {
         extraHeaders: {
-          Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImVtYWlsIjoiZW11bGF0b3JAZ21haWwuY29tIiwicm9sZSI6IkVtdWxhdG9yQWRtaW4iLCJpYXQiOjE3MzQwNjMyMjQsImV4cCI6MTczNjY1NTIyNH0.1UeDXp_8FIR_Xvn-CQgyoKtKND41WbmZwPttd762O6s'
+          Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjMsImVtYWlsIjoiZW11bGF0b3JBZG1pbkBkYW1hcnUuY29tIiwicm9sZSI6IkVtdWxhdG9yQWRtaW4iLCJpYXQiOjE3MzQyMzYyNDMsImV4cCI6MTczNTEwMDI0M30.LMqeer95ttZqtKfKi_CwTWY-cLG0uXYb9_eD3lB0jYw'
         }
       }
     }
@@ -94,7 +94,8 @@
         if(e.candidate){
           socket.emit('IceCandidate',{
             iceCandidate: e.candidate,
-            clientId
+            clientId,
+            isEmulator: true
           })
         }
       })
@@ -138,14 +139,14 @@
     await peerConnection.setLocalDescription(answer);
     //
     // // Send the answer back to the server
-    socket.emit('Answer', { clientId, answer });
+    socket.emit('Answer', { clientId, sdp: answer.sdp });
     console.log(`Sent answer to client: ${clientId}`);
   });
 
-  socket.on('IceCandidateToEmulator', (candidate) => {
+  socket.on('IceCandidate', (candidate) => {
     console.log('Adding ice candidate', candidate)
     if(candidate) {
-      peerConnection.addIceCandidate(candidate)
+      peerConnection.addIceCandidate(candidate.iceCandidate)
     }
   })
 

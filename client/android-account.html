@@ -22,12 +22,12 @@
 
   const connectionId = "SamsungGalaxyS25"; // ID of the emulator to connect to
   const androidEmulator = 'SamsungGalaxyS25'; // Unique ID for the emulator
-  const signalingServer = "ws://localhost:3000/signaling"; // Socket.IO server URL
+  const signalingServer = 'ws://localhost:3000/signaling'; // Socket.IO server
   const socketOptions = {
     transportOptions: {
       polling: {
         extraHeaders: {
-          Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjMsImFjY291bnQiOiJEaXBlc2ggTWFuYW5kaGFyIiwiZW1haWwiOiJhbmRyb2lkQGdtYWlsLmNvbSIsInJvbGUiOiJBbmRyb2lkVXNlciIsInN1YlJvbGUiOiJBbmRyb2lkQWRtaW4iLCJpYXQiOjE3MzQwNjMzNjksImV4cCI6MTczNjY1NTM2OX0.hWD5otjHqDcU1UoFBo_bKQ3_5vSR4OyTLNhqrjr4mEM', // Replace with your actual JWT token
+          Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImFjY291bnQiOiJBbmRyb2lkIEFjY291bnQgMiIsImVtYWlsIjoiYW5kcm9pZGFkbWluQGRhbWFydS5jb20iLCJyb2xlIjoiQW5kcm9pZFVzZXIiLCJzdWJSb2xlIjoiQW5kcm9pZEFjY291bnQiLCJpYXQiOjE3MzQwOTkzNDcsImV4cCI6MTczNDk2MzM0N30.E6hEZC4n6iThkCF-0i6oD5mo6Mfr6v1AaUxsBOjjcME',
         }
       }
     }
@@ -88,12 +88,9 @@
       });
 
       peerConnection.addEventListener('icecandidate', e => {
-        console.log('ICE candidate found!');
-        console.log(e);
         if (e.candidate) {
-          socket.emit('IceCandidateToEmulator', {
-            iceCandidate: e.candidate,
-            connectionId: androidEmulator
+          socket.emit('IceCandidate', {
+            iceCandidate: e.candidate, clientId: androidEmulator, isEmulator: false
           });
         }
       });
@@ -135,23 +132,23 @@
         const offer = await peerConnection.createOffer();
         console.log(offer);
         await peerConnection.setLocalDescription(offer);
-        socket.emit('Offer', { connectionId: androidEmulator, sdp: offer.sdp }); // Send offer to signalingServer
+        socket.emit('Offer', { deviceId: androidEmulator, sdp: offer.sdp }); // Send offer to signalingServer
       } catch (err) {
         console.log(err);
       }
     });
   });
 
-  socket.on('Answer', async (answer) => {
-    console.log(answer);
-    await peerConnection.setRemoteDescription(answer);
+  socket.on('Answer', async (sdp) => {
+    console.log("answer sdp", sdp);
+    await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: sdp.sdp }));
   });
 
   socket.on("disconnect", () => log("Socket.IO connection closed."));
   socket.on('IceCandidate', (candidate) => {
     console.log('Adding ICE candidate to android', candidate);
     if (candidate) {
-      peerConnection.addIceCandidate(candidate);
+      peerConnection.addIceCandidate(candidate.iceCandidate);
     }
   });
 </script>
