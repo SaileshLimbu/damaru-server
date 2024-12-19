@@ -1,16 +1,23 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
-import { EmulatorCode } from '../../emulators/entities/emulator-code.entity';
-import { EmulatorLinked } from '../../emulators/entities/emulator-linked.entity';
-import { ActivityLog } from '../../activity_logs/entities/activity_log.entity';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn
+} from "typeorm";
+import { Users } from "../../users/entities/user.entity";
+import { UserEmulatorConnections } from "../../emulators/entities/user-emulator-connections";
+import { ActivityLog } from "../../activity_logs/entities/activity_log.entity";
 
 @Entity()
 export class Account {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User, (user) => user.accounts, { onDelete: 'CASCADE' })
-  user: User;
+  @ManyToOne(() => Users, (user) => user.accounts, { onDelete: 'CASCADE' })
+  user: Users;
 
   @Column()
   account_name: string;
@@ -27,11 +34,11 @@ export class Account {
   @UpdateDateColumn({ type: 'date' })
   updated_at: Date;
 
-  @OneToMany(() => EmulatorCode, (emulatorCode) => emulatorCode.account)
-  emulatorCodes: EmulatorCode[];
+  @Column({ type: 'date', nullable: true})
+  last_login: Date;
 
-  @OneToMany(() => EmulatorLinked, (connection) => connection.account)
-  emulatorConnections: EmulatorLinked[];
+  @OneToMany(() => UserEmulatorConnections, (connection) => connection.account)
+  emulatorConnections: UserEmulatorConnections[];
 
   @OneToMany(() => ActivityLog, (activityLog) => activityLog.account)
   activityLogs: ActivityLog[];

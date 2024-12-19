@@ -6,9 +6,10 @@ import { LocalStrategy } from './services/local-strategy.service';
 import { AuthController } from './controllers/auth.controller';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from '../users/entities/user.entity';
+import { Users } from '../users/entities/user.entity';
 import { JwtStrategy } from './services/jwt-strategy.service';
 import { WSJwtStrategy } from './services/wsjwt-strategy.service';
+import { Account } from "../accounts/entities/account.entity";
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { WSJwtStrategy } from './services/wsjwt-strategy.service';
       }),
       inject: [ConfigService]
     }),
-    TypeOrmModule.forFeature([User])
+    TypeOrmModule.forFeature([Users, Account])
   ],
   controllers: [AuthController],
   providers: [AuthService, LocalStrategy, JwtStrategy, WSJwtStrategy],

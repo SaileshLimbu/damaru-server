@@ -1,11 +1,20 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
-import { Account } from '../../accounts/entities/account.entity';
-import { ActivityLog } from '../../activity_logs/entities/activity_log.entity';
-import { Role } from './role.entity';
-import { EmulatorLinked } from '../../emulators/entities/emulator-linked.entity';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn
+} from "typeorm";
+import { Account } from "../../accounts/entities/account.entity";
+import { ActivityLog } from "../../activity_logs/entities/activity_log.entity";
+import { Role } from "./role.entity";
+import { UserEmulatorConnections } from "../../emulators/entities/user-emulator-connections";
+import { UserEmulators } from "../../emulators/entities/user-emulators";
 
 @Entity()
-export class User {
+export class Users {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -33,6 +42,9 @@ export class User {
   @OneToMany(() => ActivityLog, (activityLog) => activityLog.account)
   activityLogs: ActivityLog[];
 
-  @OneToMany(() => EmulatorLinked, (connection) => connection.device)
-  emulatorConnections: EmulatorLinked[];
+  @OneToMany(() => UserEmulators, (emulator) => emulator.device)
+  emulators: UserEmulators[];
+
+  @OneToMany(() => UserEmulatorConnections, (connection) => connection.device)
+  emulatorConnections: UserEmulatorConnections[];
 }

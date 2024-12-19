@@ -1,8 +1,8 @@
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryColumn, UpdateDateColumn } from 'typeorm';
-import { EmulatorCode } from './emulator-code.entity';
-import { EmulatorStatus } from '../interfaces/emulator.status';
-import { EmulatorLinked } from './emulator-linked.entity';
-import { ActivityLog } from '../../activity_logs/entities/activity_log.entity';
+import { Column, CreateDateColumn, Entity, OneToMany, PrimaryColumn, UpdateDateColumn } from "typeorm";
+import { UserEmulators } from "./user-emulators";
+import { EmulatorStatus } from "../interfaces/emulator.status";
+import { UserEmulatorConnections } from "./user-emulator-connections";
+import { ActivityLog } from "../../activity_logs/entities/activity_log.entity";
 
 @Entity()
 export class Emulator {
@@ -30,11 +30,11 @@ export class Emulator {
   @UpdateDateColumn({ type: 'date' })
   updated_at: Date;
 
-  @OneToMany(() => EmulatorCode, (emulatorCode) => emulatorCode.device)
-  emulatorCodes: EmulatorCode[];
+  @OneToMany(() => UserEmulators, (emulatorCode) => emulatorCode.device)
+  emulators: UserEmulators[];
 
-  @OneToMany(() => EmulatorLinked, (connection) => connection.device)
-  emulatorConnections: EmulatorLinked[];
+  @OneToMany(() => UserEmulatorConnections, (connection) => connection.device)
+  emulatorConnections: UserEmulatorConnections[];
 
   @OneToMany(() => ActivityLog, (activityLog) => activityLog.device)
   activityLogs: ActivityLog[];

@@ -1,26 +1,25 @@
-import { Emulator } from '../entities/emulator.entity';
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { EmulatorDto } from '../dtos/emulator.dto';
-import { EmulatorStatus } from '../interfaces/emulator.status';
-import { EmulatorCode } from '../entities/emulator-code.entity';
-import { StringUtils } from '../../../common/utils/string.utils';
-import { DateUtils } from '../../../common/utils/date.utils';
-import { EmulatorLinked } from '../entities/emulator-linked.entity';
-import { EmulatorLinkDto } from '../dtos/emulator-link.dto';
-import { ActivityLogService } from '../../activity_logs/services/activity_log.service';
-import { Actions } from '../../activity_logs/enums/Actions';
+import { Emulator } from "../entities/emulator.entity";
+import { Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { EmulatorDto } from "../dtos/emulator.dto";
+import { EmulatorStatus } from "../interfaces/emulator.status";
+import { UserEmulators } from "../entities/user-emulators";
+import { DateUtils } from "../../../common/utils/date.utils";
+import { UserEmulatorConnections } from "../entities/user-emulator-connections";
+import { EmulatorLinkDto } from "../dtos/emulator-link.dto";
+import { ActivityLogService } from "../../activity_logs/services/activity_log.service";
+import { Actions } from "../../activity_logs/enums/Actions";
 
 @Injectable()
 export class EmulatorService {
   constructor(
     @InjectRepository(Emulator)
     private readonly emulatorRepository: Repository<Emulator>,
-    @InjectRepository(EmulatorCode)
-    private readonly emulatorCodesRepository: Repository<EmulatorCode>,
-    @InjectRepository(EmulatorLinked)
-    private readonly emulatorLinkedRepository: Repository<EmulatorLinked>,
+    @InjectRepository(UserEmulators)
+    private readonly userEmulatorRepository: Repository<UserEmulators>,
+    @InjectRepository(UserEmulatorConnections)
+    private readonly emulatorLinkedRepository: Repository<UserEmulatorConnections>,
     private readonly activityLogService: ActivityLogService
   ) {}
 
@@ -106,8 +105,7 @@ export class EmulatorService {
   }
 
   generateCode(device_id: string) {
-    return this.emulatorCodesRepository.insert({
-      code: StringUtils.generateRandomAlphaNumeric(5),
+    return this.userEmulatorRepository.insert({
       device: { device_id },
       expires_at: DateUtils.add(30, 'd')
     });
@@ -122,6 +120,6 @@ export class EmulatorService {
   }
 
   getEmulatorCodes() {
-    return this.emulatorCodesRepository.find();
+    return this.userEmulatorRepository.find();
   }
 }

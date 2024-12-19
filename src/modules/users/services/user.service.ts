@@ -1,4 +1,4 @@
-import { User } from '../entities/user.entity';
+import { Users } from '../entities/user.entity';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InsertResult, Repository } from 'typeorm';
@@ -14,8 +14,8 @@ import { Roles } from '../enums/roles';
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectRepository(User)
-    private readonly usersRepository: Repository<User>,
+    @InjectRepository(Users)
+    private readonly usersRepository: Repository<Users>,
     @InjectRepository(RoleEntity)
     private readonly roleRepository: Repository<RoleEntity>,
     private readonly accountService: AccountsService,
@@ -33,7 +33,7 @@ export class UsersService {
     const userId: number = newUser?.identifiers[0]?.id as number;
     await this.activityLogService.log({ user_id: userId, action: Actions.CREATE_USER, metadata: user });
     if (user.role === Roles.AndroidUser) {
-      const account = { userId, account_name: user.name, pin: StringUtils.generateRandomNumeric(), is_admin: true };
+      const account = { userId, account_name: user.name, pin: StringUtils.generateRandomNumeric(), is_admin: true, last_login: null };
       const newAccount: InsertResult = await this.accountService.create(account);
       const accountId: number = newAccount.identifiers[0].id as number;
       await this.activityLogService.log({
@@ -64,11 +64,11 @@ export class UsersService {
     return await this.usersRepository.update(id, updatedUser);
   }
 
-  findAll(): Promise<User[]> {
+  findAll(): Promise<Users[]> {
     return this.usersRepository.find();
   }
 
-  findOne(id: number): Promise<User | null> {
+  findOne(id: number): Promise<Users | null> {
     return this.usersRepository.findOne({
       where: { id },
       relations: { accounts: true }
