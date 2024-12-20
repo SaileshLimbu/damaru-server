@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { EncryptionService } from '../../core/encryption/encryption.service';
@@ -48,5 +48,13 @@ export class AppController {
   @Post('decrypt')
   decrypt(@Body() encryptedText: string): DecryptedPayload {
     return this.encryptionService.hybridDecrypt(encryptedText);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, SuperAdmin)
+  @ExcludeInterceptor()
+  @Get('encryption/:status')
+  toggleEncryption(@Param('status') status: boolean): Promise<string> {
+    return this.encryptionService.toggleEncryption(status.toString() === 'true');
   }
 }

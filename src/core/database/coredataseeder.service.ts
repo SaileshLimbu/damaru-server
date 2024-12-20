@@ -3,12 +3,15 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Role } from '../../modules/users/entities/role.entity';
 import { Roles } from '../../modules/users/enums/roles';
+import { EncryptionEntity } from '../../modules/app/entities/encryption.entity';
 
 @Injectable()
 export class CoreDataSeederService {
   constructor(
     @InjectRepository(Role)
-    private readonly roleRepository: Repository<Role>
+    private readonly roleRepository: Repository<Role>,
+    @InjectRepository(EncryptionEntity)
+    private readonly encryptionEntityRepository: Repository<EncryptionEntity>
   ) {}
 
   async seedRoles() {
@@ -23,5 +26,12 @@ export class CoreDataSeederService {
     }
 
     console.log('Roles seeded successfully');
+  }
+
+  async seedEncryption() {
+    const encryptionEnabled = await this.encryptionEntityRepository.findOne({ where: { id: 1 } });
+    if (!encryptionEnabled) {
+      await this.encryptionEntityRepository.insert({ enabled: true });
+    }
   }
 }

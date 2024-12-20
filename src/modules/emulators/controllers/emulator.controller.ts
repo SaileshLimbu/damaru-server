@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { EmulatorDto } from '../dtos/emulator.dto';
 import { EmulatorService } from '../services/emulator.service';
@@ -25,22 +25,10 @@ export class EmulatorController {
     return this.emulatorService.findAll();
   }
 
-  @Get('/generate-code')
-  @ApiConsumes('application/json', 'text/plain')
-  generateCodes(@Query('deviceId') deviceId: string) {
-    return this.emulatorService.generateCode(deviceId);
-  }
-
   @Get(':deviceId/available')
   @ApiConsumes('application/json', 'text/plain')
   checkAvailability(@Param('deviceId') deviceId: string) {
     return this.emulatorService.checkAvailability(deviceId);
-  }
-
-  @Get('codes')
-  @ApiConsumes('application/json', 'text/plain')
-  getCodes() {
-    return this.emulatorService.getEmulatorCodes();
   }
 
   @Post()

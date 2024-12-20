@@ -5,6 +5,9 @@ import * as fs from 'fs';
 import { DecryptedPayload } from './DecryptedPayload';
 import { Json } from '../../common/interfaces/json';
 import { HashUtils } from '../../common/utils/hash.utils';
+import { EncryptionEntity } from '../../modules/app/entities/encryption.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class EncryptionService {
@@ -15,7 +18,11 @@ export class EncryptionService {
   private static readonly ENCODING_BASE64 = 'base64';
   private static readonly ENCODING_UTF8 = 'utf8';
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    @InjectRepository(EncryptionEntity)
+    private readonly encryption: Repository<EncryptionEntity>
+  ) {
     // Load public and private keys from files
     this.publicKey = fs.readFileSync(this.configService.get<string>('PUBLIC_KEY'), EncryptionService.ENCODING_UTF8);
     this.privateKey = fs.readFileSync(this.configService.get<string>('PRIVATE_KEY'), EncryptionService.ENCODING_UTF8);
@@ -89,5 +96,15 @@ export class EncryptionService {
       aesKey: decryptedAesKey,
       rsaKey: rsaEncryptedKey
     };
+  }
+
+  async toggleEncryption(enabled: boolean) {
+    console.log();
+    await this.encryption.update(1, { enabled: Boolean(enabled) });
+    return `Encryption has been set to: ${enabled}`
+  }
+
+  async getEncryption() {
+    return this.encryption.findOneBy({ id: 1 });
   }
 }

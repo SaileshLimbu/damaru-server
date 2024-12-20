@@ -1,7 +1,7 @@
 import { Users } from '../entities/user.entity';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { InsertResult, Repository } from 'typeorm';
+import { FindOneOptions, InsertResult, Repository } from 'typeorm';
 import { CreateUserDto } from '../dtos/create.user.dto';
 import { AccountsService } from '../../accounts/services/account.service';
 import { StringUtils } from '../../../common/utils/string.utils';
@@ -33,7 +33,13 @@ export class UsersService {
     const userId: number = newUser?.identifiers[0]?.id as number;
     await this.activityLogService.log({ user_id: userId, action: Actions.CREATE_USER, metadata: user });
     if (user.role === Roles.AndroidUser) {
-      const account = { userId, account_name: user.name, pin: StringUtils.generateRandomNumeric(), is_admin: true, last_login: null };
+      const account = {
+        userId,
+        account_name: user.name,
+        pin: StringUtils.generateRandomNumeric(),
+        is_admin: true,
+        last_login: null
+      };
       const newAccount: InsertResult = await this.accountService.create(account);
       const accountId: number = newAccount.identifiers[0].id as number;
       await this.activityLogService.log({
@@ -68,11 +74,11 @@ export class UsersService {
     return this.usersRepository.find();
   }
 
-  findOne(id: number): Promise<Users | null> {
+  findOne(id: number): Promise<Users> {
     return this.usersRepository.findOne({
       where: { id },
       relations: { accounts: true }
-    });
+    } as FindOneOptions<Users>);
   }
 
   async remove(id: number): Promise<void> {

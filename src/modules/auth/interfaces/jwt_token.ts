@@ -3,5 +3,6 @@ export interface JwtToken {
   email: string;
   role: string;
   subRole?: string;
-  account?: string;
+  accountName?: string;
+  accountId?: number;
 }

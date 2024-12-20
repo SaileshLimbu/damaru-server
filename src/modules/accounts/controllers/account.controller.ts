@@ -8,7 +8,6 @@ import { AuthUser } from '../../../common/interfaces/AuthUser';
 
 @ApiTags('Accounts')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, AndroidAdmin)
 @Controller('accounts')
 export class AccountsController {
   constructor(private readonly accountsService: AccountsService) {}
@@ -19,12 +18,14 @@ export class AccountsController {
    * @returns An array of all user objects
    */
   @Get()
+  @UseGuards(JwtAuthGuard)
   @ApiConsumes('application/json', 'text/plain')
   findAll(@Req() authUser: AuthUser) {
-    return this.accountsService.findAll(authUser.user.sub);
+    return this.accountsService.findAll(authUser.user);
   }
 
   @Post()
+  @UseGuards(JwtAuthGuard, AndroidAdmin)
   @ApiBody({
     type: CreateAccountDto,
     description: 'Account Create'
@@ -35,6 +36,7 @@ export class AccountsController {
   }
 
   @Put(':id')
+  @UseGuards(JwtAuthGuard)
   @ApiBody({
     type: CreateAccountDto,
     description: 'Update Create'

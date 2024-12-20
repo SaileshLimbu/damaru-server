@@ -20,5 +20,5 @@ export class UserEmulators {
   linked_at: Date;
 
   @CreateDateColumn({ type: 'date', nullable: true })
-  unlinked_at: Date;
+  unlinked_at?: Date;
 }

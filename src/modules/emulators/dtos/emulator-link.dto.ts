@@ -10,15 +10,6 @@ export class EmulatorLinkDto {
   @IsNumber()
   user_id: number;
 
-  @ApiProperty()
-  @IsOptional()
-  @IsNumber()
-  account_id?: number;
-
-  @IsOptional()
-  @IsDate()
-  connected_at?: Date;
-
   @IsOptional()
   @IsDate()
   expiry_at?: Date;

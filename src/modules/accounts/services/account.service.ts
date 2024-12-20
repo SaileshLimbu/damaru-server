@@ -1,12 +1,14 @@
 import { Account } from '../entities/account.entity';
 import { HttpException, HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindManyOptions, FindOneOptions, Repository } from 'typeorm';
 import { CreateAccountDto } from '../dtos/create.account.dto';
 import { DateUtils } from '../../../common/utils/date.utils';
 import { StringUtils } from '../../../common/utils/string.utils';
 import { ActivityLogService } from '../../activity_logs/services/activity_log.service';
 import { Actions } from '../../activity_logs/enums/Actions';
+import { SubRoles } from '../../users/enums/roles';
+import { JwtToken } from '../../auth/interfaces/jwt_token';
 
 @Injectable()
 export class AccountsService {
@@ -24,7 +26,7 @@ export class AccountsService {
           user: { id: createAccountDto.userId }
         },
         relations: { user: true }
-      });
+      } as FindManyOptions<Account>);
       if (account?.length > 0) {
         throw new HttpException(
           {
@@ -57,7 +59,7 @@ export class AccountsService {
       where: { id: accountId },
       select: { user: { id: true } },
       relations: { user: true }
-    });
+    } as FindOneOptions<Account>);
   }
 
   async update(id: number, updateAccountDto: Partial<CreateAccountDto>, userId: number) {
@@ -73,7 +75,8 @@ export class AccountsService {
       if (updateAccountDto.pin) {
         updateFields = {
           ...updateFields,
-          pin: updateAccountDto.pin
+          pin: updateAccountDto.pin,
+          firstLogin: false
         };
       }
       if (updateAccountDto.userId) {
@@ -97,8 +100,17 @@ export class AccountsService {
     }
   }
 
-  findAll(userId: number): Promise<Account[]> {
-    return this.accountRepository.find({ where: { user: { id: userId } } });
+  findAll(jwtPayload: JwtToken): Promise<Account[]> {
+    if (jwtPayload.subRole === SubRoles.AndroidAdmin) {
+      return this.accountRepository.find({ where: { user: { id: jwtPayload.sub } } } as FindManyOptions<Account>);
+    } else {
+      return this.accountRepository.find({
+        where: {
+          user: { id: jwtPayload.sub },
+          id: jwtPayload.accountId
+        }
+      } as FindManyOptions<Account>);
+    }
   }
 
   findOne(id: number): Promise<Account | null> {

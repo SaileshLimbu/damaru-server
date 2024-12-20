@@ -22,6 +22,9 @@ export class Account {
   @Column()
   account_name: string;
 
+  @Column({ default: true })
+  first_login: boolean;
+
   @Column({ default: false })
   is_admin: boolean;
 

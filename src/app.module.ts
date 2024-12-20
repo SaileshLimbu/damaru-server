@@ -10,6 +10,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { EncryptionService } from './core/encryption/encryption.service';
 import { SeederModule } from './core/database/seeder.module';
 import { SignalingServerModule } from './core/signaling/SignalingServerModule';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { EncryptionEntity } from './modules/app/entities/encryption.entity';
 
 @Module({
   imports: [
@@ -21,7 +23,8 @@ import { SignalingServerModule } from './core/signaling/SignalingServerModule';
     EmulatorModule,
     ActivityLogModule,
     SeederModule,
-    SignalingServerModule
+    SignalingServerModule,
+    TypeOrmModule.forFeature([EncryptionEntity])
   ],
   controllers: [AppController],
   providers: [AppService, EncryptionService]

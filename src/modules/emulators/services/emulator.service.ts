@@ -1,15 +1,15 @@
-import { Emulator } from "../entities/emulator.entity";
-import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { EmulatorDto } from "../dtos/emulator.dto";
-import { EmulatorStatus } from "../interfaces/emulator.status";
-import { UserEmulators } from "../entities/user-emulators";
-import { DateUtils } from "../../../common/utils/date.utils";
-import { UserEmulatorConnections } from "../entities/user-emulator-connections";
-import { EmulatorLinkDto } from "../dtos/emulator-link.dto";
-import { ActivityLogService } from "../../activity_logs/services/activity_log.service";
-import { Actions } from "../../activity_logs/enums/Actions";
+import { Emulator } from '../entities/emulator.entity';
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { FindOneOptions, Repository } from 'typeorm';
+import { EmulatorDto } from '../dtos/emulator.dto';
+import { EmulatorStatus } from '../interfaces/emulator.status';
+import { UserEmulators } from '../entities/user-emulators';
+import { DateUtils } from '../../../common/utils/date.utils';
+import { UserEmulatorConnections } from '../entities/user-emulator-connections';
+import { EmulatorLinkDto } from '../dtos/emulator-link.dto';
+import { ActivityLogService } from '../../activity_logs/services/activity_log.service';
+import { Actions } from '../../activity_logs/enums/Actions';
 
 @Injectable()
 export class EmulatorService {
@@ -63,34 +63,31 @@ export class EmulatorService {
   }
 
   async linkEmulator(emulatorLinkDto: EmulatorLinkDto, userId: number) {
-    // const alreadyLinked = await this.emulatorLinkedRepository.findOne({
-    //   where: {
-    //     user: { id: userId },
-    //     device: { device_id: emulatorLinkDto.device_id }
-    //   }
-    // });
-    // if (!alreadyLinked) {
+    const alreadyLinked = await this.userEmulatorRepository.findOne({
+      where: {
+        user: { id: userId },
+        device: { device_id: emulatorLinkDto.device_id }
+      }
+    } as FindOneOptions<UserEmulators>);
+    if (!alreadyLinked) {
       await this.activityLogService.log({
         action: Actions.LINK_EMULATOR,
-        account_id: emulatorLinkDto.account_id,
         device_id: emulatorLinkDto.device_id,
         user_id: userId,
         metadata: emulatorLinkDto
       });
       //expiry DateUtils.add(30, 'd')
-      const newLink = await this.emulatorLinkedRepository.insert({
-        connected_at: emulatorLinkDto.connected_at,
-        account: { id: emulatorLinkDto.account_id },
-        disconnected_at: null,
+      const newLink = await this.userEmulatorRepository.insert({
         user: { id: userId },
         device: { device_id: emulatorLinkDto.device_id },
-        expiry_at: emulatorLinkDto.expiry_at
+        expires_at: DateUtils.add(30, 'd'),
+        linked_at: DateUtils.today()
       });
       return newLink?.identifiers[0]?.id as number;
-    // } else {
-    //   console.log('Emulator already linked');
-    //   return alreadyLinked.id;
-    // }
+    } else {
+      console.log('Emulator already linked');
+      return alreadyLinked.id;
+    }
   }
 
   async connectEmulator(emulatorLinkedId: number, userId: number) {
@@ -104,22 +101,11 @@ export class EmulatorService {
     await this.emulatorLinkedRepository.update(emulatorLinkedId, { disconnected_at: DateUtils.today() });
   }
 
-  generateCode(device_id: string) {
-    return this.userEmulatorRepository.insert({
-      device: { device_id },
-      expires_at: DateUtils.add(30, 'd')
-    });
-  }
-
   async checkAvailability(deviceId: string) {
     const availableCheck = await this.emulatorRepository.findOne({
       where: { device_id: deviceId },
       select: { status: true }
     });
     return { available: availableCheck.status === EmulatorStatus.online };
-  }
-
-  getEmulatorCodes() {
-    return this.userEmulatorRepository.find();
   }
 }

@@ -36,10 +36,9 @@ async function bootstrap() {
     // origin: whiteListedDomain ? whiteListedDomain.split(',') : ['*'],
     origin: ['*'],
     methods: ['GET', 'PUT', 'PATCH', 'POST', 'DELETE'],
-    optionsSuccessStatus: 200,
+    optionsSuccessStatus: 200
     // credentials: true
   });
-
 
   app.use(bodyParser.text());
 
@@ -47,16 +46,17 @@ async function bootstrap() {
   // Error Handler
   app.useGlobalFilters(new ExceptionHandler(logger, configService));
 
+  const environment = app.get(ConfigService).get<string>('ENVIRONMENT') || Environments.DEVELOPMENT;
+  console.log(`Environment: ${environment}`);
+  const dataSeederService = app.get(CoreDataSeederService);
+  await dataSeederService.seedRoles();
+  await dataSeederService.seedEncryption();
   // Resolve EncryptionService manually
   const encryptionService = app.get(EncryptionService);
   const reflector = app.get(Reflector);
-  const environment = app.get(ConfigService).get<string>('ENVIRONMENT') || Environments.DEVELOPMENT;
-  console.log(`Environment: ${environment}`);
   if (environment !== Environments.DEVELOPMENT.toString()) {
     app.useGlobalInterceptors(new EncryptionInterceptor(encryptionService, reflector));
   }
-  const dataSeederService = app.get(CoreDataSeederService);
-  await dataSeederService.seedRoles();
   await app.listen(configService.get<number>('APP_PORT') || 3000);
 }
 
