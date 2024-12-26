@@ -27,7 +27,7 @@ export class AuthService {
     const user = await this.usersRepository.findOne({
       where: { email: loginDto.email },
       relations: { accounts: true, role: true }
-    }  as FindManyOptions<Users>);
+    } as FindManyOptions<Users>);
     if (loginDto?.password && user && (await HashUtils.compareHash(loginDto.password, user.password))) {
       console.log({ user });
       let jwtPayload: JwtToken = {
@@ -71,6 +71,14 @@ export class AuthService {
   async login(loginDto: LoginDto) {
     const { jwtPayload, firstLogin } = await this.validateUser(loginDto);
     const token = this.jwtService.sign(jwtPayload);
-    return { accessToken: token, firstLogin };
+    return {
+      accessToken: token,
+      firstLogin,
+      isSuperAdmin: jwtPayload.role === Roles.SuperAdmin,
+      isRootUser: jwtPayload.role === Roles.AndroidUser && jwtPayload.subRole === SubRoles.AndroidAdmin,
+      userId: jwtPayload.sub,
+      accountName: jwtPayload.accountName,
+      accountId: jwtPayload.accountId
+    };
   }
 }

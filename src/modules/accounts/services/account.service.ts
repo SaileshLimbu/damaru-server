@@ -51,7 +51,8 @@ export class AccountsService {
       action: Actions.CREATE_ACCOUNT,
       metadata: account
     });
-    return accountCreated;
+    account['id'] = accountCreated.identifiers[0].id as number;
+    return account;
   }
 
   findUserByAccount(accountId: number) {
@@ -62,39 +63,47 @@ export class AccountsService {
     } as FindOneOptions<Account>);
   }
 
-  async update(id: number, updateAccountDto: Partial<CreateAccountDto>, userId: number) {
+  async update(id: number, updateAccountDto: Partial<CreateAccountDto>, jwt: JwtToken) {
     const accountBelongToUser = await this.findUserByAccount(id);
-    if (accountBelongToUser?.user?.id === userId) {
-      let updateFields = {};
-      if (updateAccountDto.account_name) {
-        updateFields = {
-          ...updateFields,
-          account_name: updateAccountDto.account_name
-        };
+    if (accountBelongToUser?.user?.id === jwt.sub) {
+      if (
+        jwt.subRole === SubRoles.AndroidAdmin.toString() ||
+        (jwt.subRole === SubRoles.AndroidAccount.toString() && id === jwt.accountId)
+      ) {
+        let updateFields = {};
+        if (updateAccountDto.account_name) {
+          updateFields = {
+            ...updateFields,
+            account_name: updateAccountDto.account_name
+          };
+        }
+        if (updateAccountDto.pin) {
+          updateFields = {
+            ...updateFields,
+            pin: updateAccountDto.pin,
+            first_login: false
+          };
+        }
+        if (updateAccountDto.userId) {
+          // todo check if we need this or not
+          // updateFields = {
+          //   ...updateFields,
+          //   user: { id: updateAccountDto.userId }
+          // };
+        }
+        updateFields = { ...updateFields, updated_at: DateUtils.today() };
+        const accountUser = await this.findUserByAccount(id);
+        await this.activityLogService.log({
+          user_id: accountUser.user.id,
+          account_id: id,
+          action: Actions.UPDATE_ACCOUNT,
+          metadata: updateFields
+        });
+        await this.accountRepository.update(id, updateFields);
+        return { message: 'Account updated', updated: updateFields };
+      } else {
+        throw new UnauthorizedException('You are not authorized to update this account');
       }
-      if (updateAccountDto.pin) {
-        updateFields = {
-          ...updateFields,
-          pin: updateAccountDto.pin,
-          firstLogin: false
-        };
-      }
-      if (updateAccountDto.userId) {
-        // todo check if we need this or not
-        updateFields = {
-          ...updateFields,
-          user: { id: updateAccountDto.userId }
-        };
-      }
-      updateFields = { ...updateFields, updated_at: DateUtils.today() };
-      const accountUser = await this.findUserByAccount(id);
-      await this.activityLogService.log({
-        user_id: accountUser.user.id,
-        account_id: id,
-        action: Actions.UPDATE_ACCOUNT,
-        metadata: updateFields
-      });
-      return this.accountRepository.update(id, updateFields);
     } else {
       throw new UnauthorizedException('You cannot update account that you do not owned');
     }

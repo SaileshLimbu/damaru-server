@@ -3,4 +3,5 @@ export enum EmulatorStatus {
   online = 'online',
   offline = 'offline',
   running = 'running',
+  expired = 'expired'
 }

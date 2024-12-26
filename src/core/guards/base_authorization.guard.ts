@@ -1,8 +1,8 @@
-import { CanActivate, ExecutionContext, UnauthorizedException } from "@nestjs/common";
-import { Request } from "express";
-import { JwtToken } from "../../modules/auth/interfaces/jwt_token";
-import { Roles } from "../../modules/users/enums/roles";
-import { WsException } from "@nestjs/websockets";
+import { CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { Request } from 'express';
+import { JwtToken } from '../../modules/auth/interfaces/jwt_token';
+import { Roles } from '../../modules/users/enums/roles';
+import { WsException } from '@nestjs/websockets';
 
 export abstract class BaseAuthorizationGuard implements CanActivate {
   protected constructor(
@@ -21,7 +21,6 @@ export abstract class BaseAuthorizationGuard implements CanActivate {
       // WebSocket Context
       const client = context.switchToWs().getClient();
       request = client.handshake; // Use the handshake object for headers
-      console.log('request======', request)
     } else {
       throw new UnauthorizedException('Unsupported context type');
     }
@@ -31,7 +30,10 @@ export abstract class BaseAuthorizationGuard implements CanActivate {
     if (!jwtPayload) {
       throw new UnauthorizedException('Authorization failed');
     }
+    return this.authorized(type, jwtPayload);
+  }
 
+  protected authorized(type: string, jwtPayload: JwtToken) {
     console.log('Checking Authorization for payload:', jwtPayload);
     const isAuthorized = jwtPayload.role == Roles.SuperAdmin.toString() || (jwtPayload.role === this.role && jwtPayload.subRole == this.subRole);
     if(isAuthorized) {

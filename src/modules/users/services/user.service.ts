@@ -1,7 +1,7 @@
 import { Users } from '../entities/user.entity';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOneOptions, InsertResult, Repository } from 'typeorm';
+import { FindManyOptions, FindOneOptions, Repository } from 'typeorm';
 import { CreateUserDto } from '../dtos/create.user.dto';
 import { AccountsService } from '../../accounts/services/account.service';
 import { StringUtils } from '../../../common/utils/string.utils';
@@ -40,8 +40,8 @@ export class UsersService {
         is_admin: true,
         last_login: null
       };
-      const newAccount: InsertResult = await this.accountService.create(account);
-      const accountId: number = newAccount.identifiers[0].id as number;
+      const newAccount = await this.accountService.create(account);
+      const accountId: number = newAccount['id'];
       await this.activityLogService.log({
         user_id: userId,
         action: Actions.CREATE_ACCOUNT,
@@ -71,7 +71,7 @@ export class UsersService {
   }
 
   findAll(): Promise<Users[]> {
-    return this.usersRepository.find();
+    return this.usersRepository.find({ relations: { accounts: true } } as FindManyOptions<Users>);
   }
 
   findOne(id: number): Promise<Users> {

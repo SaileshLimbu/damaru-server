@@ -99,7 +99,6 @@ export class EncryptionService {
   }
 
   async toggleEncryption(enabled: boolean) {
-    console.log();
     await this.encryption.update(1, { enabled: Boolean(enabled) });
     return `Encryption has been set to: ${enabled}`
   }

@@ -1,7 +1,7 @@
 import { Emulator } from '../entities/emulator.entity';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOneOptions, Repository } from 'typeorm';
+import { FindManyOptions, FindOneOptions, Repository } from 'typeorm';
 import { EmulatorDto } from '../dtos/emulator.dto';
 import { EmulatorStatus } from '../interfaces/emulator.status';
 import { UserEmulators } from '../entities/user-emulators';
@@ -10,6 +10,8 @@ import { UserEmulatorConnections } from '../entities/user-emulator-connections';
 import { EmulatorLinkDto } from '../dtos/emulator-link.dto';
 import { ActivityLogService } from '../../activity_logs/services/activity_log.service';
 import { Actions } from '../../activity_logs/enums/Actions';
+import { JwtToken } from '../../auth/interfaces/jwt_token';
+import { Roles } from '../../users/enums/roles';
 
 @Injectable()
 export class EmulatorService {
@@ -45,8 +47,12 @@ export class EmulatorService {
     return this.emulatorRepository.update(id, emulator);
   }
 
-  findAll(): Promise<Emulator[]> {
-    return this.emulatorRepository.find();
+  findAll(jwt: JwtToken): Promise<Emulator[]> {
+    if (jwt.role === Roles.SuperAdmin.toString()) {
+      return this.emulatorRepository.find();
+    } else {
+      return this.emulatorRepository.find({ where: { emulatorConnections: { user: { id: jwt.sub } } } } as FindManyOptions<Emulator>);
+    }
   }
 
   findOne(id: string): Promise<Emulator | null> {

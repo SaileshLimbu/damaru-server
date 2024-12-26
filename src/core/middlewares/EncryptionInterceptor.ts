@@ -1,4 +1,4 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
+import { BadRequestException, CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { map } from 'rxjs/operators';
 import { EncryptionService } from '../encryption/encryption.service';
 import { Request } from 'express';
@@ -15,28 +15,33 @@ export class EncryptionInterceptor implements NestInterceptor {
 
   async intercept(context: ExecutionContext, next: CallHandler) {
     if((await this.encryptionService.getEncryption()).enabled) {
-      const request: Request = context.switchToHttp().getRequest();
-      const isExcluded = this.reflector.get<boolean>(EXCLUDE_INTERCEPTOR_KEY, context.getHandler());
-      if (isExcluded || request.method === 'GET') {
-        console.log('Skipping interception as this route is excluded');
-        // If the handler has the exclude interceptor metadata, skip this interceptor
-        return next.handle();
-      } else {
-        console.log('Intercepting request and decrypting', request.body);
-        let decryptedData: { data: Json; aesKey: string; rsaKey: string } = null;
-        if (request.body) {
-          decryptedData = this.encryptionService.hybridDecrypt(request.body as string);
-          request.body = JSON.parse(JSON.stringify(decryptedData.data));
+      try {
+        const request: Request = context.switchToHttp().getRequest();
+        const isExcluded = this.reflector.get<boolean>(EXCLUDE_INTERCEPTOR_KEY, context.getHandler());
+        if (isExcluded || request.method === 'GET') {
+          console.log('Skipping interception as this route is excluded');
+          // If the handler has the exclude interceptor metadata, skip this interceptor
+          return next.handle();
+        } else {
+          console.log('Intercepting request and decrypting', request.body);
+          let decryptedData: { data: Json; aesKey: string; rsaKey: string } = null;
+          if (request.body) {
+            decryptedData = this.encryptionService.hybridDecrypt(request.body as string);
+            request.body = JSON.parse(JSON.stringify(decryptedData.data));
+          }
+          return next.handle().pipe(
+            map((data) => {
+              // Encrypt outgoing response data
+              console.log('response', data);
+              const encryptedData = this.encryptionService.aesEncrypt(JSON.stringify(data), decryptedData.aesKey);
+              console.log({ encryptedData });
+              return decryptedData.rsaKey + encryptedData;
+            })
+          );
         }
-        return next.handle().pipe(
-          map((data) => {
-            // Encrypt outgoing response data
-            console.log('response', data);
-            const encryptedData = this.encryptionService.aesEncrypt(JSON.stringify(data), decryptedData.aesKey);
-            console.log({ encryptedData });
-            return decryptedData.rsaKey + encryptedData;
-          })
-        );
+      } catch (error) {
+        console.log('Failed to decrypt request parameters')
+        throw new BadRequestException('Failed to process your request,[Encryption/Decryption error]')
       }
     } else {
       console.log('Encryption has been disabled in database');
