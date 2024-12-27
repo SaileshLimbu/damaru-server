@@ -31,11 +31,14 @@ export class Emulator {
   updated_at: Date;
 
   @OneToMany(() => UserEmulators, (emulatorCode) => emulatorCode.device)
-  emulators: UserEmulators[];
+  userEmulators: UserEmulators[];
 
   @OneToMany(() => UserEmulatorConnections, (connection) => connection.device)
   emulatorConnections: UserEmulatorConnections[];
 
   @OneToMany(() => ActivityLog, (activityLog) => activityLog.device)
   activityLogs: ActivityLog[];
+
+  @Column({ nullable: true })
+  screenshot: string;
 }

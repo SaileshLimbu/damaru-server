@@ -58,7 +58,7 @@ export class UsersService {
       throw new BadRequestException('Role cannot be updated');
     }
     if (user.password) {
-      updatedUser['password'] = HashUtils.hash(user.password);
+      updatedUser['password'] = await HashUtils.hash(user.password);
     }
     if (user.name) {
       updatedUser['name'] = user.name;
@@ -67,6 +67,7 @@ export class UsersService {
       updatedUser['email'] = user.email;
     }
     await this.activityLogService.log({ user_id: id, action: Actions.UPDATE_USER, metadata: updatedUser });
+    console.log({updatedUser})
     return await this.usersRepository.update(id, updatedUser);
   }
 

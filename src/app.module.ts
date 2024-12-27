@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { registerConfigModule, registerDatabaseModule } from './modules.registry';
+import { registerConfigModule, registerDatabaseModule, registerStatic } from './modules.registry';
 import { AppController } from './modules/app/app.controller';
 import { AppService } from './modules/app/app.service';
 import { UsersModule } from './modules/users/user.module';
@@ -17,6 +17,7 @@ import { EncryptionEntity } from './modules/app/entities/encryption.entity';
   imports: [
     registerConfigModule(),
     registerDatabaseModule(),
+    registerStatic(),
     AuthModule,
     UsersModule,
     AccountsModule,

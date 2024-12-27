@@ -8,13 +8,13 @@ export class ActivityLog {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Users, (user) => user.activityLogs, { nullable: true })
+  @ManyToOne(() => Users, (user) => user.activityLogs, { nullable: true, onDelete: 'NO ACTION'  })
   user: Users;
 
-  @ManyToOne(() => Account, (account) => account.activityLogs, { nullable: true })
+  @ManyToOne(() => Account, (account) => account.activityLogs, { nullable: true, onDelete: 'SET NULL'  })
   account: Account;
 
-  @ManyToOne(() => Emulator, (emulator) => emulator.activityLogs, { nullable: true })
+  @ManyToOne(() => Emulator, (emulator) => emulator.activityLogs, { nullable: true, onDelete: 'NO ACTION'  })
   device: Emulator;
 
   @Column()

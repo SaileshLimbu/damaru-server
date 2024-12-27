@@ -9,6 +9,7 @@ import { EmulatorUsers } from '../../../core/guards/emulator_user.guard';
 import { EmulatorAdmin } from '../../../core/guards/emulator_admin.guard';
 import { SuperAdmin } from '../../../core/guards/super_admin.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ExcludeInterceptor } from '../../../core/middlewares/ExcludeEncryptionInterceptor';
 
 @ApiTags('Emulators')
 @ApiBearerAuth()
@@ -43,6 +44,28 @@ export class EmulatorController {
     return this.emulatorService.create(createUserDto, authUser.user.sub);
   }
 
+  @ExcludeInterceptor()
+  @Post(':deviceId/screenshot')
+  @UseInterceptors(FileInterceptor('file'))
+  @UseGuards(EmulatorAdmin)
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } }
+    }
+  })
+  async uploadFile(@Param('deviceId') deviceId: string, @UploadedFile() file: Express.Multer.File) {
+    const emulator = await this.emulatorService.linkScreenshot(deviceId);
+    return {
+      uploaded: true,
+      originalName: file.originalname,
+      savedFileName: file.filename,
+      path: file.path,
+      link: emulator.screenshot
+    };
+  }
+
   @Put(':id')
   @ApiBody({
     type: EmulatorDto,
@@ -68,29 +91,8 @@ export class EmulatorController {
   @UseGuards(SuperAdmin)
   @ApiConsumes('application/json', 'text/plain')
   @Post('link-emulator')
-  linkEmulator(@Body() emulatorLinkDto: EmulatorLinkDto, @Req() authUser: AuthUser) {
-    return this.emulatorService.linkEmulator(emulatorLinkDto, authUser.user.sub);
-  }
-
-  @Post('upload/screenshot')
-  @UseInterceptors(FileInterceptor('file'))
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        file: {
-          type: 'string',
-          format: 'binary'
-        }
-      }
-    }
-  })
-  uploadFile(@UploadedFile() file: Express.Multer.File) {
-    return {
-      originalName: file.originalname,
-      filename: file.filename,
-      path: file.path
-    };
+  async linkEmulator(@Body() emulatorLinkDto: EmulatorLinkDto) {
+    await this.emulatorService.linkEmulator(emulatorLinkDto);
+    return { status: 200, message: `Device with id:${emulatorLinkDto.device_id} linked with userId: ${emulatorLinkDto.user_id}`}
   }
 }

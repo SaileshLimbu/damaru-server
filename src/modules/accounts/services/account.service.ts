@@ -129,13 +129,12 @@ export class AccountsService {
   async remove(id: number, userId: number): Promise<void> {
     const accountUser = await this.findUserByAccount(id);
     if (accountUser?.user?.id === userId) {
-      await this.activityLogService.log({
-        user_id: accountUser.user.id,
-        account_id: id,
-        action: Actions.DELETE_ACCOUNT,
-        metadata: { id }
-      });
-      await this.accountRepository.delete(id);
+        await this.accountRepository.delete(id);
+        await this.activityLogService.log({
+          user_id: accountUser.user.id,
+          action: Actions.DELETE_ACCOUNT,
+          metadata: { id }
+        });
     } else {
       throw new UnauthorizedException('You cannot delete account that you do not owned');
     }

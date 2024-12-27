@@ -8,13 +8,13 @@ export class UserEmulatorConnections {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Users, (user) => user.emulatorConnections, { nullable: true })
+  @ManyToOne(() => Users, (user) => user.emulatorConnections, { nullable: true, onDelete: 'CASCADE' })
   user: Users;
 
-  @ManyToOne(() => Account, (account) => account.emulatorConnections, { nullable: true })
+  @ManyToOne(() => Account, (account) => account.emulatorConnections, { nullable: true, onDelete: 'CASCADE' })
   account: Account;
 
-  @ManyToOne(() => Emulator, (emulator) => emulator.emulatorConnections)
+  @ManyToOne(() => Emulator, (emulator) => emulator.emulatorConnections, { onDelete: 'CASCADE' })
   device: Emulator;
 
   @CreateDateColumn({ type: 'date', nullable: true })

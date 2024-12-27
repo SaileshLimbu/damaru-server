@@ -11,12 +11,7 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "incremental": true,
-    "skipLibCheck": true,
-    "types": ["node"],
-    "typeRoots": ["node_modules/@types"]
+    "skipLibCheck": true
   },
-  "include": [
-    "src/**/*",
-    "node_modules/@types/node/buffer.d.ts"
-  ]
+  "include": ["src/**/*"]
 }

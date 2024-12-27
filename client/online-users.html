@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Online Users</title>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <style>
+      body {
+          font-family: Arial, sans-serif;
+          margin: 20px;
+      }
+      h1, h2 {
+          color: #333;
+      }
+      ul {
+          list-style-type: none;
+          padding: 0;
+          margin-bottom: 20px;
+      }
+      li {
+          padding: 10px;
+          background-color: #f9f9f9;
+          margin: 5px 0;
+          border: 1px solid #ddd;
+          border-radius: 5px;
+      }
+      .section {
+          margin-bottom: 30px;
+      }
+  </style>
+</head>
+<body>
+<h1>Online Users</h1>
+
+<div class="section">
+  <h2>SuperAdmins</h2>
+  <ul id="superAdminsList">
+    <li>Loading...</li>
+  </ul>
+</div>
+
+<div class="section">
+  <h2>EmulatorAdmins</h2>
+  <ul id="emulatorAdminsList">
+    <li>Loading...</li>
+  </ul>
+</div>
+
+<div class="section">
+  <h2>AndroidUsers</h2>
+  <ul id="androidUsersList">
+    <li>Loading...</li>
+  </ul>
+</div>
+
+<script>
+  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoic3VwZXJhZG1pbkBkYW1hcnUuY29tIiwicm9sZSI6IlN1cGVyQWRtaW4iLCJpYXQiOjE3MzM2NTE2MzcsImV4cCI6MTczNjI0MzYzN30.WaolVFgfUetuuJq7RHQ7uwbUQMLTk4E82gD2dJqh4cU"; // Replace with the actual token
+
+  // Connect to the WebSocket server
+  const socket = io('http://localhost:3000/signaling', {
+    extraHeaders: { Authorization: `Bearer ${token}` }
+  });
+
+  // References to the user lists
+  const superAdminsList = document.getElementById('superAdminsList');
+  const emulatorAdminsList = document.getElementById('emulatorAdminsList');
+  const androidUsersList = document.getElementById('androidUsersList');
+
+  // Handle the OnlineUsers event
+  socket.on('OnlineUsers', (connectedUsers) => {
+    const { superAdmins, emulatorAdmins, androidUsers } = connectedUsers;
+
+    // Helper function to update a list
+    const updateList = (listElement, users, userType) => {
+      listElement.innerHTML = '';
+      if (users.length === 0) {
+        listElement.innerHTML = `<li>No ${userType} online</li>`;
+      } else {
+        users.forEach((user) => {
+          const listItem = document.createElement('li');
+          listItem.textContent = `Email: ${user.email}, UserID: ${user.userId}}`;
+          if(userType === 'AndroidUsers') {
+            listItem.textContent = `Email: ${user.email}, UserID: ${user.userId}, AccountName: ${user.accountName}`;
+          }
+          listElement.appendChild(listItem);
+        });
+      }
+    };
+
+    // Update each list
+    updateList(superAdminsList, superAdmins, 'SuperAdmins');
+    updateList(emulatorAdminsList, emulatorAdmins, 'EmulatorAdmins');
+    updateList(androidUsersList, androidUsers, 'AndroidUsers');
+  });
+
+  // Log connection errors
+  socket.on('connect_error', (err) => {
+    console.error('Connection error:', err.message);
+  });
+</script>
+</body>
+</html>

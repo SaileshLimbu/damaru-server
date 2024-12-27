@@ -1,6 +1,6 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { Emulator } from "./emulator.entity";
-import { Users } from "../../users/entities/user.entity";
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Emulator } from './emulator.entity';
+import { Users } from '../../users/entities/user.entity';
 
 @Entity()
 export class UserEmulators {
@@ -10,15 +10,15 @@ export class UserEmulators {
   @ManyToOne(() => Users, (user) => user.emulators)
   user: Users;
 
-  @ManyToOne(() => Emulator, (emulator) => emulator.emulators)
+  @ManyToOne(() => Emulator, (emulator) => emulator.userEmulators)
   device: Emulator;
 
   @Column()
   expires_at: Date;
 
-  @CreateDateColumn({ type: 'date' })
+  @Column({ type: 'date' })
   linked_at: Date;
 
-  @CreateDateColumn({ type: 'date', nullable: true })
+  @Column({ type: 'date', nullable: true })
   unlinked_at?: Date;
 }

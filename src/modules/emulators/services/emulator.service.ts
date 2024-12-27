@@ -1,7 +1,7 @@
 import { Emulator } from '../entities/emulator.entity';
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindManyOptions, FindOneOptions, Repository } from 'typeorm';
+import { FindManyOptions, FindOneOptions, IsNull, Not, Repository } from 'typeorm';
 import { EmulatorDto } from '../dtos/emulator.dto';
 import { EmulatorStatus } from '../interfaces/emulator.status';
 import { UserEmulators } from '../entities/user-emulators';
@@ -12,6 +12,7 @@ import { ActivityLogService } from '../../activity_logs/services/activity_log.se
 import { Actions } from '../../activity_logs/enums/Actions';
 import { JwtToken } from '../../auth/interfaces/jwt_token';
 import { Roles } from '../../users/enums/roles';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class EmulatorService {
@@ -22,7 +23,8 @@ export class EmulatorService {
     private readonly userEmulatorRepository: Repository<UserEmulators>,
     @InjectRepository(UserEmulatorConnections)
     private readonly emulatorLinkedRepository: Repository<UserEmulatorConnections>,
-    private readonly activityLogService: ActivityLogService
+    private readonly activityLogService: ActivityLogService,
+    private readonly configService: ConfigService
   ) {}
 
   async create(emulator: EmulatorDto, userId: number) {
@@ -47,11 +49,25 @@ export class EmulatorService {
     return this.emulatorRepository.update(id, emulator);
   }
 
-  findAll(jwt: JwtToken): Promise<Emulator[]> {
+  private emulatorResponseMapper(emulators: Array<Emulator>) {
+    return emulators.map((emulator) => {
+      const expiresAt = emulator.userEmulators[emulator.userEmulators.length - 1].expires_at;
+      emulator['expires_at'] = `${DateUtils.diffInDays(expiresAt, DateUtils.today())} days`;
+      delete emulator.userEmulators;
+      return emulator;
+    });
+  }
+
+  async findAll(jwt: JwtToken) {
     if (jwt.role === Roles.SuperAdmin.toString()) {
-      return this.emulatorRepository.find();
+      const emulators = await this.emulatorRepository.find({ relations: { userEmulators: true } });
+      return this.emulatorResponseMapper(emulators);
     } else {
-      return this.emulatorRepository.find({ where: { emulatorConnections: { user: { id: jwt.sub } } } } as FindManyOptions<Emulator>);
+      const emulators = await this.emulatorRepository.find({
+        where: { userEmulators: { user: { id: jwt.sub }, linked_at: Not(IsNull()) } },
+        relations: { userEmulators: true }
+      } as FindManyOptions<Emulator>);
+      return this.emulatorResponseMapper(emulators);
     }
   }
 
@@ -68,31 +84,30 @@ export class EmulatorService {
     await this.emulatorRepository.delete(id);
   }
 
-  async linkEmulator(emulatorLinkDto: EmulatorLinkDto, userId: number) {
+  async linkEmulator(emulatorLinkDto: EmulatorLinkDto) {
     const alreadyLinked = await this.userEmulatorRepository.findOne({
       where: {
-        user: { id: userId },
-        device: { device_id: emulatorLinkDto.device_id }
+        device: { device_id: emulatorLinkDto.device_id },
+        unlinked_at: IsNull()
       }
     } as FindOneOptions<UserEmulators>);
     if (!alreadyLinked) {
       await this.activityLogService.log({
         action: Actions.LINK_EMULATOR,
         device_id: emulatorLinkDto.device_id,
-        user_id: userId,
+        user_id: emulatorLinkDto.user_id,
         metadata: emulatorLinkDto
       });
-      //expiry DateUtils.add(30, 'd')
       const newLink = await this.userEmulatorRepository.insert({
-        user: { id: userId },
+        user: { id: emulatorLinkDto.user_id },
         device: { device_id: emulatorLinkDto.device_id },
         expires_at: DateUtils.add(30, 'd'),
-        linked_at: DateUtils.today()
+        linked_at: DateUtils.today(),
+        unlinked_at: null
       });
       return newLink?.identifiers[0]?.id as number;
     } else {
-      console.log('Emulator already linked');
-      return alreadyLinked.id;
+      throw new HttpException('This device has already been linked', HttpStatus.NOT_ACCEPTABLE);
     }
   }
 
@@ -113,5 +128,17 @@ export class EmulatorService {
       select: { status: true }
     });
     return { available: availableCheck.status === EmulatorStatus.online };
+  }
+
+  async linkScreenshot(deviceId: string) {
+    const savedFileName = `${deviceId}.png`;
+    const emulator = await this.emulatorRepository.findOne({ where: { device_id: deviceId } } as FindOneOptions<Emulator>);
+    if (emulator) {
+      emulator.screenshot = `${this.configService.get<string>('SCREENSHOT_URL')}/${savedFileName}`;
+      await this.emulatorRepository.save(emulator);
+      return emulator;
+    } else {
+      throw new NotFoundException(`Device with id ${deviceId} not found`);
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { ConfigModule } from "@nestjs/config";
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Users } from "./modules/users/entities/user.entity";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Account } from "./modules/accounts/entities/account.entity";
@@ -8,6 +8,9 @@ import { UserEmulatorConnections } from "./modules/emulators/entities/user-emula
 import { ActivityLog } from "./modules/activity_logs/entities/activity_log.entity";
 import { Role } from "./modules/users/entities/role.entity";
 import { EncryptionEntity } from './modules/app/entities/encryption.entity';
+import { ServeStaticModule, ServeStaticModuleOptions } from '@nestjs/serve-static';
+import { resolve } from 'path';
+
 
 /**
  * Registers a global configuration module to load environment variables.
@@ -25,3 +28,15 @@ export const registerDatabaseModule = () =>
     entities: [Users, Account, UserEmulators, Emulator, UserEmulatorConnections, ActivityLog, Role, EncryptionEntity],
     synchronize: true
   });
+
+export const registerStatic = () =>
+  ServeStaticModule.forRootAsync({
+    imports: [ConfigModule],
+    inject: [ConfigService],
+    useFactory: async (configService: ConfigService): Promise<ServeStaticModuleOptions[]> => [
+      {
+        rootPath: resolve(configService.get<string>('SCREENSHOT_PATH') || 'screenshots'),
+        serveStaticOptions: { index: false },
+      },
+    ],
+  })

@@ -17,10 +17,13 @@ import { diskStorage } from 'multer';
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         storage: diskStorage({
-          destination: configService.get<string>('SCREENSHOT_PATH') || '../screenshots',
+          destination: configService.get<string>('SCREENSHOT_PATH'),
           filename: (req, file, callback) => {
-            callback(null, file.originalname);
-          },
+            // Use deviceId as the file name
+            const deviceId = req.params.deviceId; // Assuming deviceId is passed in the route
+            const fileExtension = '.png'; // Fixed extension as .png
+            callback(null, `${deviceId}${fileExtension}`);
+          }
         }),
         fileFilter: (req, file, callback) => {
           const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif'];
@@ -28,9 +31,9 @@ import { diskStorage } from 'multer';
             return callback(new BadRequestException('Only image files are allowed!'), false);
           }
           callback(null, true);
-        },
+        }
       }),
-      inject: [ConfigService],
+      inject: [ConfigService]
     }),
     ActivityLogModule
   ],
