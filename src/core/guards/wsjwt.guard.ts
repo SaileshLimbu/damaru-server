@@ -1,13 +1,13 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { WsException } from "@nestjs/websockets";
+import { WsException } from '@nestjs/websockets';
 
 @Injectable()
 export class WsJwtGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
+    private readonly configService: ConfigService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -21,11 +21,9 @@ export class WsJwtGuard implements CanActivate {
     const token = authHeader.split(' ')[1];
 
     try {
-      const payload = this.jwtService.verify(token, {
-        secret: this.configService.get<string>('SECRET'),
-      });
-      client.handshake.user = payload; // Attach the decoded user to the handshake
-      console.log('Authenticated user:', payload);
+      client.handshake.user = this.jwtService.verify(token, {
+        secret: this.configService.get<string>('SECRET')
+      }); // Attach the decoded user to the handshake
       return true;
     } catch (error) {
       throw new WsException('Invalid or expired token');

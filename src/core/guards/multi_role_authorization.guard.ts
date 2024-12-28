@@ -10,7 +10,6 @@ export abstract class MultiRoleGuard extends BaseAuthorizationGuard {
   }
 
   authorized(type: string, jwtPayload: JwtToken): boolean {
-    console.log('Checking Authorization for payload:', jwtPayload);
     const isAuthorized =
       jwtPayload.role == Roles.SuperAdmin.toString() ||
       this.rolePair.some((rolePair) => jwtPayload.role === rolePair.role && jwtPayload.subRole === rolePair.subRole);

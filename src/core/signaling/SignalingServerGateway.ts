@@ -41,28 +41,24 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
   private connections = new Map<string, Socket>();
   private connectedUsers = { superAdmins: [], emulatorAdmins: [], androidUsers: [] };
   private readonly ROOM_SUPER_ADMIN = 'SuperAdmins';
+
   @UseGuards(WsJwtGuard, EmulatorAdmin)
   @SubscribeMessage('StartStreaming')
   async handleStartStreaming(@ConnectedSocket() client: Socket, @MessageBody() { deviceId }: { deviceId: string }) {
-    console.log('Started', { message: 'Streaming started.' });
+    console.log('Started', { message: `Streaming started: ${deviceId}` });
     console.log('user', client.handshake['user'] as JwtToken);
-
     const user = client.handshake['user'].sub;
     this.connections.set(deviceId, client);
-    // const linkedEmulatorId = await this.emulatorService.findOne(
-    //   { device_id: deviceId, user_id: user, account_id: null, expiry_at: null },
-    //   user
-    // );
-    // await this.emulatorService.connectEmulator(linkedEmulatorId, user);
-    await this.emulatorService.update(deviceId, { status: EmulatorStatus.online }, user);
-    console.log('Started', { message: 'Streaming started.' });
-    client.emit('Started', { message: 'Streaming started.' });
-    await this.activityLogService.log({
-      user_id: user,
-      device_id: deviceId,
-      action: Actions.START_STREAMING,
-      metadata: { message: 'Streaming started.', startedBy: user, on: Date.now() }
-    });
+    console.log('Started', { message: `Streaming started. for ${deviceId}` });
+    if (deviceId) {
+      await this.emulatorService.update(deviceId, { status: EmulatorStatus.online }, user);
+      await this.activityLogService.log({
+        user_id: user,
+        device_id: deviceId,
+        action: Actions.START_STREAMING,
+        metadata: { message: 'Streaming started.', startedBy: user, on: Date.now() }
+      });
+    }
   }
 
   @UseGuards(WsJwtGuard, AndroidUsers)
@@ -78,39 +74,51 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
       sdp: string;
     }
   ) {
-    console.log('offering');
+    console.log(`Offering started: ${deviceId}`);
     const emulatorSocket = this.connections.get(deviceId);
     if (!emulatorSocket) {
       client.emit('Error', { message: 'Emulator not found.' });
       return;
     }
-    emulatorSocket.emit('Offer', { sdp, clientId: client.id });
+    const accountId = client.handshake['user'].accountId;
+    this.connections.set(accountId.toString(), client);
+    const response = { sdp, clientId: accountId.toString() };
+    emulatorSocket.emit('Offer', response);
   }
 
   @UseGuards(WsJwtGuard, EmulatorAdmin)
   @SubscribeMessage('Answer')
   async handleAnswer(@MessageBody() { clientId, sdp }: { clientId: string; sdp: string }) {
     console.log('sending answer');
-    console.log({ clientId, sdp });
     if (clientId) {
-      this.server.to(clientId).emit('Answer', { sdp });
+      this.connections.get(clientId).emit('Answer', { sdp });
     }
   }
 
   @UseGuards(WsJwtGuard, EmulatorUsers)
   @SubscribeMessage('IceCandidate')
   handleIceCandidate(
-    @MessageBody() { clientId, iceCandidate, isEmulator }: { clientId: string; iceCandidate: RTCIceCandidate; isEmulator: boolean }
+    @MessageBody() { clientId, deviceId, iceCandidate }: { clientId: string; deviceId: string, iceCandidate: RTCIceCandidate}
   ) {
-    console.log('ice candidate trigger', clientId, iceCandidate);
-    if (!isEmulator) {
-      console.log('ice candidate to server trigger', clientId, iceCandidate);
-      console.log('connections', this.connections);
-      const emulatorSocket = this.connections.get(clientId);
-      emulatorSocket.emit('IceCandidate', { iceCandidate });
+    console.log('ice candidate trigger', clientId, deviceId);
+    console.log({ iceCandidate });
+    let emulatorSocket;
+    if(clientId) {
+      emulatorSocket= this.connections.get(clientId);
     } else {
-      this.server.to(clientId).emit('IceCandidate', { iceCandidate });
+      emulatorSocket = this.connections.get(deviceId);
     }
+    if(emulatorSocket) {
+      emulatorSocket.emit('IceCandidate', { iceCandidate });
+    }
+  }
+
+  // @UseGuards(WsJwtGuard, EmulatorUsers)
+  @SubscribeMessage('Disconnect')
+  disconnect(@MessageBody() { clientId, deviceId }: { clientId: string; deviceId: string }) {
+    console.log('disconnect', clientId, deviceId);
+    const socket = this.connections.get(deviceId);
+    socket.emit('Disconnect', { clientId });
   }
 
   afterInit(server: Server): any {
@@ -151,9 +159,9 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
   }
 
   handleDisconnect(client: Socket): any {
-    this.connectedUsers.androidUsers = this.connectedUsers.androidUsers.filter((user)=> user.clientId !== client.id);
-    this.connectedUsers.superAdmins = this.connectedUsers.superAdmins.filter((user)=> user.clientId !== client.id);
-    this.connectedUsers.emulatorAdmins = this.connectedUsers.emulatorAdmins.filter((user)=> user.clientId !== client.id);
+    this.connectedUsers.androidUsers = this.connectedUsers.androidUsers.filter((user) => user.clientId !== client.id);
+    this.connectedUsers.superAdmins = this.connectedUsers.superAdmins.filter((user) => user.clientId !== client.id);
+    this.connectedUsers.emulatorAdmins = this.connectedUsers.emulatorAdmins.filter((user) => user.clientId !== client.id);
     console.log('Client disconnected', client.id);
   }
 }
