@@ -13,6 +13,7 @@ import { Actions } from '../../activity_logs/enums/Actions';
 import { JwtToken } from '../../auth/interfaces/jwt_token';
 import { Roles } from '../../users/enums/roles';
 import { ConfigService } from '@nestjs/config';
+import { EmulatorState } from '../interfaces/emulator.state';
 
 @Injectable()
 export class EmulatorService {
@@ -30,7 +31,8 @@ export class EmulatorService {
   async create(emulator: EmulatorDto, userId: number) {
     const emulatorDetails = {
       ...emulator,
-      status: EmulatorStatus.registered
+      state: EmulatorState.AVAILABLE,
+      status: EmulatorStatus.offline
     };
     await this.activityLogService.log({
       action: Actions.CREATE_EMULATOR,
@@ -40,32 +42,50 @@ export class EmulatorService {
     return this.emulatorRepository.insert(emulatorDetails);
   }
 
-  async update(id: string, emulator: Partial<EmulatorDto>, userId: number) {
-    await this.activityLogService.log({
-      action: Actions.UPDATE_EMULATOR,
-      metadata: emulator,
-      user_id: userId
-    });
+  async update(id: string, emulator: Partial<EmulatorDto>) {
     return this.emulatorRepository.update(id, emulator);
   }
 
   private emulatorResponseMapper(emulators: Array<Emulator>) {
-    return emulators.map((emulator) => {
-      const expiresAt = emulator.userEmulators[emulator.userEmulators.length - 1].expires_at;
-      emulator['expires_at'] = `${DateUtils.diffInDays(expiresAt, DateUtils.today())} days`;
-      delete emulator.userEmulators;
-      return emulator;
-    });
+    return emulators
+      .map((emulator) => {
+        console.log(emulator);
+        if (!emulator.screenshot) {
+          emulator.screenshot = `${this.configService.get('SCREENSHOT_URL')}/default.png`;
+        }
+        if (emulator.state == EmulatorState.AVAILABLE) {
+          delete emulator.userEmulators;
+          return emulator;
+        } else {
+          // TODO manage in query
+          if (emulator.userEmulators.length > 0) {
+            emulator.userEmulators
+              .filter((emulatorUser) => emulatorUser.unlinked_at == null)
+              .map((emulatorUser) => {
+                const expiresAt = emulatorUser.expires_at;
+                emulator['email'] = emulatorUser.user.email;
+                emulator['userId'] = emulatorUser.user.id;
+                emulator['expires_at'] = DateUtils.diffInDays(expiresAt, DateUtils.today());
+                return emulator;
+              });
+            delete emulator.userEmulators;
+            return emulator;
+          }
+        }
+      })
+      .filter((emulator) => emulator);
   }
 
   async findAll(jwt: JwtToken) {
     if (jwt.role === Roles.SuperAdmin.toString()) {
-      const emulators = await this.emulatorRepository.find({ relations: { userEmulators: true } });
+      const emulators = await this.emulatorRepository.find({
+        relations: { userEmulators: { user: true } }
+      });
       return this.emulatorResponseMapper(emulators);
     } else {
       const emulators = await this.emulatorRepository.find({
         where: { userEmulators: { user: { id: jwt.sub }, linked_at: Not(IsNull()) } },
-        relations: { userEmulators: true }
+        relations: { userEmulators: { user: true } }
       } as FindManyOptions<Emulator>);
       return this.emulatorResponseMapper(emulators);
     }
@@ -105,6 +125,7 @@ export class EmulatorService {
         linked_at: DateUtils.today(),
         unlinked_at: null
       });
+      await this.emulatorRepository.update(emulatorLinkDto.device_id, { state: EmulatorState.REGISTERED });
       return newLink?.identifiers[0]?.id as number;
     } else {
       throw new HttpException('This device has already been linked', HttpStatus.NOT_ACCEPTABLE);
@@ -116,10 +137,6 @@ export class EmulatorService {
       user: { id: userId },
       connected_at: DateUtils.today()
     });
-  }
-
-  async disconnectEmulator(emulatorLinkedId: string) {
-    await this.emulatorLinkedRepository.update(emulatorLinkedId, { disconnected_at: DateUtils.today() });
   }
 
   async checkAvailability(deviceId: string) {

@@ -51,7 +51,7 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
     this.connections.set(deviceId, client);
     console.log('Started', { message: `Streaming started. for ${deviceId}` });
     if (deviceId) {
-      await this.emulatorService.update(deviceId, { status: EmulatorStatus.online }, user);
+      await this.emulatorService.update(deviceId, { status: EmulatorStatus.online });
       await this.activityLogService.log({
         user_id: user,
         device_id: deviceId,
@@ -89,7 +89,6 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
   @UseGuards(WsJwtGuard, EmulatorAdmin)
   @SubscribeMessage('Answer')
   async handleAnswer(@MessageBody() { clientId, sdp }: { clientId: string; sdp: string }) {
-    console.log('sending answer');
     if (clientId) {
       this.connections.get(clientId).emit('Answer', { sdp });
     }
@@ -98,19 +97,10 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
   @UseGuards(WsJwtGuard, EmulatorUsers)
   @SubscribeMessage('IceCandidate')
   handleIceCandidate(
-    @MessageBody() { clientId, deviceId, iceCandidate }: { clientId: string; deviceId: string, iceCandidate: RTCIceCandidate}
+    @MessageBody() { isEmulator, clientId, deviceId, iceCandidate }: { isEmulator:boolean, clientId: string; deviceId: string; iceCandidate: RTCIceCandidate }
   ) {
-    console.log('ice candidate trigger', clientId, deviceId);
-    console.log({ iceCandidate });
-    let emulatorSocket;
-    if(clientId) {
-      emulatorSocket= this.connections.get(clientId);
-    } else {
-      emulatorSocket = this.connections.get(deviceId);
-    }
-    if(emulatorSocket) {
-      emulatorSocket.emit('IceCandidate', { iceCandidate });
-    }
+    const emulatorSocket: Socket = isEmulator ? this.connections.get(clientId) : this.connections.get(deviceId)
+    emulatorSocket?.emit('IceCandidate', { iceCandidate, clientId, deviceId, isEmulator });
   }
 
   // @UseGuards(WsJwtGuard, EmulatorUsers)
@@ -158,10 +148,16 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
     console.log('Client connected', client.id);
   }
 
-  handleDisconnect(client: Socket): any {
+  async handleDisconnect(client: Socket) {
     this.connectedUsers.androidUsers = this.connectedUsers.androidUsers.filter((user) => user.clientId !== client.id);
     this.connectedUsers.superAdmins = this.connectedUsers.superAdmins.filter((user) => user.clientId !== client.id);
     this.connectedUsers.emulatorAdmins = this.connectedUsers.emulatorAdmins.filter((user) => user.clientId !== client.id);
+    //TODO refactor here
+    this.connections.forEach((socket, deviceId) => {
+      if (socket.id == client.id) {
+        this.emulatorService.update(deviceId, { status: EmulatorStatus.offline });
+      }
+    });
     console.log('Client disconnected', client.id);
   }
 }

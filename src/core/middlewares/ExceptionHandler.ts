@@ -3,6 +3,7 @@ import { Response } from 'express';
 import { CustomException } from '../../common/exceptions/CustomException';
 import { ConfigService } from '@nestjs/config';
 import { Environments } from '../../common/interfaces/environments';
+import { SQLITE_CONSTRAINT } from '../constants/exceptions';
 
 /**
  * CustomException class implements the NestJS ExceptionFilter interface
@@ -13,6 +14,7 @@ export class ExceptionHandler implements ExceptionFilter {
   /**
    * Constructor to inject the Logger service.
    * @param logger - The logger instance from nestjs-pino.
+   * @param configService
    */
   constructor(
     private readonly logger: Logger,
@@ -36,7 +38,12 @@ export class ExceptionHandler implements ExceptionFilter {
     } else if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
       message = exception.getResponse();
-    } else {
+    }
+    else if(exception.message.includes(SQLITE_CONSTRAINT) ){
+      statusCode = HttpStatus.NOT_MODIFIED;
+      message = 'Not modified due to foreign key constraint failure';
+    }
+    else {
       statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     }
 

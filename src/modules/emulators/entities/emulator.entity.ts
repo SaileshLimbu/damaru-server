@@ -3,6 +3,7 @@ import { UserEmulators } from "./user-emulators";
 import { EmulatorStatus } from "../interfaces/emulator.status";
 import { UserEmulatorConnections } from "./user-emulator-connections";
 import { ActivityLog } from "../../activity_logs/entities/activity_log.entity";
+import { EmulatorState } from '../interfaces/emulator.state';
 
 @Entity()
 export class Emulator {
@@ -23,6 +24,19 @@ export class Emulator {
     }
   })
   status: EmulatorStatus;
+
+  @Column({
+    transformer: {
+      to: (value: EmulatorState) => {
+        return value;
+      },
+      from: (value: string) => {
+        return value as EmulatorState;
+      }
+    }
+  })
+  state: EmulatorState;
+
 
   @CreateDateColumn({ type: 'date' })
   created_at: Date;

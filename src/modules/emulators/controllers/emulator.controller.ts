@@ -73,8 +73,8 @@ export class EmulatorController {
   })
   @UseGuards(EmulatorAdmin)
   @ApiConsumes('application/json', 'text/plain')
-  update(@Param('id') id: string, @Body() updateUserDto: Partial<EmulatorDto>, @Req() authUser: AuthUser) {
-    return this.emulatorService.update(id, updateUserDto, authUser.user.sub);
+  update(@Param('id') id: string, @Body() updateUserDto: Partial<EmulatorDto>) {
+    return this.emulatorService.update(id, updateUserDto);
   }
 
   @Delete(':id')
@@ -93,6 +93,9 @@ export class EmulatorController {
   @Post('link-emulator')
   async linkEmulator(@Body() emulatorLinkDto: EmulatorLinkDto) {
     await this.emulatorService.linkEmulator(emulatorLinkDto);
-    return { status: 200, message: `Device with id:${emulatorLinkDto.device_id} linked with userId: ${emulatorLinkDto.user_id}`}
+    return {
+      status: 200,
+      message: `Device with id:${emulatorLinkDto.device_id} linked with userId: ${emulatorLinkDto.user_id}`
+    };
   }
 }
