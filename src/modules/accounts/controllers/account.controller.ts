@@ -43,13 +43,13 @@ export class AccountsController {
   @UseGuards(AndroidUsers)
   @ApiOperation({ description: 'Root user can update his any accounts, normal user can update his account only' })
   update(@Param('id') id: number, @Body() updateAccountDto: Partial<CreateAccountDto>, @Req() authUser: AuthUser) {
-    return this.accountsService.update(id, updateAccountDto, authUser.user);
+    return this.accountsService.update(parseInt(id.toString(), 10), updateAccountDto, authUser.user);
   }
 
   @Delete(':id')
-  @UseGuards(AndroidAdmin)
+  @UseGuards(AndroidUsers)
   @ApiConsumes('application/json', 'text/plain')
   delete(@Param('id') id: number, @Req() authUser: AuthUser) {
-    return this.accountsService.remove(id, authUser.user);
+    return this.accountsService.remove(parseInt(id.toString(), 10), authUser.user);
   }
 }

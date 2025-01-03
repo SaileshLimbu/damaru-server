@@ -10,6 +10,7 @@ export class CreateAccountDto {
   @IsNumber()
   userId: number;
 
+  @ApiProperty()
   @IsOptional()
   @IsString()
   pin: string;

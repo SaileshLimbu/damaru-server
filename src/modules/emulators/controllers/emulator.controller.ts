@@ -96,7 +96,7 @@ export class EmulatorController {
   }
 
   @ApiBody({
-    type: EmulatorLinkDto,
+    type: EmulatorAssignDto,
     description: 'Assign emulator to multiple accounts dto'
   })
   @UseGuards(AndroidAdmin)

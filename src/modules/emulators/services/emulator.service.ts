@@ -135,7 +135,7 @@ export class EmulatorService {
             status: AccountStatus.ACTIVE,
             account: { id: emulatorAssignedDto.accountId }
           },
-          ['account.id', 'userEmulator.id', 'device.device_id']
+          ['account.id', 'userEmulator.id']
         );
       }
     }
@@ -160,7 +160,7 @@ export class EmulatorService {
             status: AccountStatus.ACTIVE,
             account: { id: account }
           },
-          ['account.id', 'userEmulator.id', 'device.device_id']
+          ['account.id', 'userEmulator.id']
         );
       }
     }

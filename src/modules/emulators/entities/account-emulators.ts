@@ -1,9 +1,10 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, Unique } from 'typeorm';
 import { UserEmulators } from './user-emulators';
 import { Account } from '../../accounts/entities/account.entity';
 import { EmulatorConnections } from './emulator-connections';
 
 @Entity()
+@Unique(['account', 'userEmulator'])
 export class AccountEmulators {
   @PrimaryGeneratedColumn()
   id: number;
