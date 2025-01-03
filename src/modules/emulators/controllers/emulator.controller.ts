@@ -10,6 +10,9 @@ import { EmulatorAdmin } from '../../../core/guards/emulator_admin.guard';
 import { SuperAdmin } from '../../../core/guards/super_admin.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ExcludeInterceptor } from '../../../core/middlewares/ExcludeEncryptionInterceptor';
+import { AndroidAdmin } from '../../../core/guards/android_admin.guard';
+import { EmulatorAssignDto } from '../dtos/emulator-assign.dto';
+import { AccountEmulatorsAssignDto } from '../dtos/account-emulators-assign.dto';
 
 @ApiTags('Emulators')
 @ApiBearerAuth()
@@ -24,13 +27,6 @@ export class EmulatorController {
   @ApiConsumes('application/json', 'text/plain')
   findAll(@Req() authUser: AuthUser) {
     return this.emulatorService.findAll(authUser.user);
-  }
-
-  @Get(':deviceId/available')
-  @UseGuards(EmulatorUsers)
-  @ApiConsumes('application/json', 'text/plain')
-  checkAvailability(@Param('deviceId') deviceId: string) {
-    return this.emulatorService.checkAvailability(deviceId);
   }
 
   @Post()
@@ -96,6 +92,36 @@ export class EmulatorController {
     return {
       status: 200,
       message: `Device with id:${emulatorLinkDto.device_id} linked with userId: ${emulatorLinkDto.user_id}`
+    };
+  }
+
+  @ApiBody({
+    type: EmulatorLinkDto,
+    description: 'Assign emulator to multiple accounts dto'
+  })
+  @UseGuards(AndroidAdmin)
+  @ApiConsumes('application/json', 'text/plain')
+  @Post('assign-multi-accounts')
+  async assignEmulator(@Body() emulatorLinkDto: EmulatorAssignDto, @Req() authUser: AuthUser) {
+    await this.emulatorService.assignEmulator(emulatorLinkDto, authUser.user);
+    return {
+      status: 200,
+      message: `Device has been assigned to multiple accounts`
+    };
+  }
+
+  @ApiBody({
+    type: AccountEmulatorsAssignDto,
+    description: 'Assign emulators to one account dto'
+  })
+  @UseGuards(AndroidAdmin)
+  @ApiConsumes('application/json', 'text/plain')
+  @Post('assign-multi-emulators')
+  async assignEmulatorsToAccount(@Body() emulatorLinkDto: AccountEmulatorsAssignDto, @Req() authUser: AuthUser) {
+    await this.emulatorService.assignEmulatorsToAccount(emulatorLinkDto, authUser.user);
+    return {
+      status: 200,
+      message: `Devices have been assigned to an account`
     };
   }
 }

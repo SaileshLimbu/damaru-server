@@ -1,6 +1,7 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { Emulator } from './emulator.entity';
 import { Users } from '../../users/entities/user.entity';
+import { AccountEmulators } from './account-emulators';
 
 @Entity()
 export class UserEmulators {
@@ -21,4 +22,7 @@ export class UserEmulators {
 
   @Column({ type: 'date', nullable: true })
   unlinked_at?: Date;
+
+  @OneToMany(() => AccountEmulators, (accountEmulator) => accountEmulator.userEmulator)
+  accountEmulator: AccountEmulators;
 }

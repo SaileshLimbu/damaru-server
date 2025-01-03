@@ -4,15 +4,17 @@ import { Emulator } from './entities/emulator.entity';
 import { EmulatorService } from './services/emulator.service';
 import { EmulatorController } from './controllers/emulator.controller';
 import { UserEmulators } from './entities/user-emulators';
-import { UserEmulatorConnections } from './entities/user-emulator-connections';
+import { EmulatorConnections } from './entities/emulator-connections';
 import { ActivityLogModule } from '../activity_logs/activity_log.module';
 import { MulterModule } from '@nestjs/platform-express';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { diskStorage } from 'multer';
+import { AccountEmulators } from './entities/account-emulators';
+import { AccountsModule } from '../accounts/account.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Emulator, UserEmulators, UserEmulatorConnections]),
+    TypeOrmModule.forFeature([Emulator, UserEmulators, EmulatorConnections, AccountEmulators]),
     MulterModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -35,7 +37,8 @@ import { diskStorage } from 'multer';
       }),
       inject: [ConfigService]
     }),
-    ActivityLogModule
+    ActivityLogModule,
+    AccountsModule
   ],
   providers: [EmulatorService],
   controllers: [EmulatorController],

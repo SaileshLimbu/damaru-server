@@ -1,7 +1,7 @@
 import { Column, CreateDateColumn, Entity, OneToMany, PrimaryColumn, UpdateDateColumn } from "typeorm";
 import { UserEmulators } from "./user-emulators";
 import { EmulatorStatus } from "../interfaces/emulator.status";
-import { UserEmulatorConnections } from "./user-emulator-connections";
+import { EmulatorConnections } from "./emulator-connections";
 import { ActivityLog } from "../../activity_logs/entities/activity_log.entity";
 import { EmulatorState } from '../interfaces/emulator.state';
 
@@ -47,8 +47,8 @@ export class Emulator {
   @OneToMany(() => UserEmulators, (emulatorCode) => emulatorCode.device)
   userEmulators: UserEmulators[];
 
-  @OneToMany(() => UserEmulatorConnections, (connection) => connection.device)
-  emulatorConnections: UserEmulatorConnections[];
+  @OneToMany(() => EmulatorConnections, (connection) => connection.accountEmulators)
+  emulatorConnections: EmulatorConnections[];
 
   @OneToMany(() => ActivityLog, (activityLog) => activityLog.device)
   activityLogs: ActivityLog[];

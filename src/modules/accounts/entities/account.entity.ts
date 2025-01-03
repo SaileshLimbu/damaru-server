@@ -8,7 +8,7 @@ import {
   UpdateDateColumn
 } from "typeorm";
 import { Users } from "../../users/entities/user.entity";
-import { UserEmulatorConnections } from "../../emulators/entities/user-emulator-connections";
+import { EmulatorConnections } from "../../emulators/entities/emulator-connections";
 import { ActivityLog } from "../../activity_logs/entities/activity_log.entity";
 
 @Entity()
@@ -40,8 +40,8 @@ export class Account {
   @Column({ type: 'date', nullable: true})
   last_login: Date;
 
-  @OneToMany(() => UserEmulatorConnections, (connection) => connection.account)
-  emulatorConnections: UserEmulatorConnections[];
+  @OneToMany(() => EmulatorConnections, (connection) => connection.accountEmulators)
+  emulatorConnections: EmulatorConnections[];
 
   @OneToMany(() => ActivityLog, (activityLog) => activityLog.account)
   activityLogs: ActivityLog[];

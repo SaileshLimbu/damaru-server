@@ -115,7 +115,6 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
     server.use((socket: Socket, next) => {
       try {
         let auth_token = socket.handshake.headers.authorization;
-        // get the token itself without "Bearer"
         auth_token = auth_token.split(' ')[1];
         console.log({ auth_token });
         const json: JwtToken = this.jwtService.verify(auth_token);

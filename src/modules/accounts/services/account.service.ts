@@ -5,17 +5,14 @@ import { FindManyOptions, FindOneOptions, Repository } from 'typeorm';
 import { CreateAccountDto } from '../dtos/create.account.dto';
 import { DateUtils } from '../../../common/utils/date.utils';
 import { StringUtils } from '../../../common/utils/string.utils';
-import { ActivityLogService } from '../../activity_logs/services/activity_log.service';
-import { Actions } from '../../activity_logs/enums/Actions';
-import { SubRoles } from '../../users/enums/roles';
+import { Roles, SubRoles } from '../../users/enums/roles';
 import { JwtToken } from '../../auth/interfaces/jwt_token';
 
 @Injectable()
 export class AccountsService {
   constructor(
     @InjectRepository(Account)
-    private readonly accountRepository: Repository<Account>,
-    private readonly activityLogService: ActivityLogService
+    private readonly accountRepository: Repository<Account>
   ) {}
 
   async create(createAccountDto: CreateAccountDto) {
@@ -45,12 +42,6 @@ export class AccountsService {
       is_admin: createAccountDto.is_admin
     };
     const accountCreated = await this.accountRepository.insert(account);
-    await this.activityLogService.log({
-      user_id: createAccountDto.userId,
-      account_id: accountCreated.identifiers[0].id as number,
-      action: Actions.CREATE_ACCOUNT,
-      metadata: account
-    });
     account['id'] = accountCreated.identifiers[0].id as number;
     return account;
   }
@@ -92,13 +83,6 @@ export class AccountsService {
           // };
         }
         updateFields = { ...updateFields, updated_at: DateUtils.today() };
-        const accountUser = await this.findUserByAccount(id);
-        await this.activityLogService.log({
-          user_id: accountUser.user.id,
-          account_id: id,
-          action: Actions.UPDATE_ACCOUNT,
-          metadata: updateFields
-        });
         await this.accountRepository.update(id, updateFields);
         return { message: 'Account updated', updated: updateFields };
       } else {
@@ -126,15 +110,20 @@ export class AccountsService {
     return this.accountRepository.findOneBy({ id });
   }
 
-  async remove(id: number, userId: number): Promise<void> {
+  findRootAccount(userId: number): Promise<Account> {
+    return this.accountRepository.findOne({
+      where: { user: { id: userId }, is_admin: true },
+      relations: { user: true }
+    } as FindOneOptions<Account>);
+  }
+
+  async remove(id: number, payload: JwtToken): Promise<void> {
     const accountUser = await this.findUserByAccount(id);
-    if (accountUser?.user?.id === userId) {
-        await this.accountRepository.delete(id);
-        await this.activityLogService.log({
-          user_id: accountUser.user.id,
-          action: Actions.DELETE_ACCOUNT,
-          metadata: { id }
-        });
+    if (
+      payload.role === Roles.SuperAdmin ||
+      (accountUser?.user?.id === payload.sub && (payload.subRole === SubRoles.AndroidAdmin || id === payload.accountId))
+    ) {
+      await this.accountRepository.delete(id);
     } else {
       throw new UnauthorizedException('You cannot delete account that you do not owned');
     }

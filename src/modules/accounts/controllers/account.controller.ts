@@ -50,6 +50,6 @@ export class AccountsController {
   @UseGuards(AndroidAdmin)
   @ApiConsumes('application/json', 'text/plain')
   delete(@Param('id') id: number, @Req() authUser: AuthUser) {
-    return this.accountsService.remove(id, authUser.user.sub);
+    return this.accountsService.remove(id, authUser.user);
   }
 }
