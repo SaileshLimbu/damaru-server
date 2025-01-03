@@ -142,6 +142,28 @@ export class EmulatorService {
   }
 
   /**
+   * Unassigns an emulators to specific account for a user.
+   * @param emulatorAssignedDto - DTO containing the emulator assignment details.
+   * @param user - The JWT token of the user performing the assignment.
+   * @returns void
+   */
+  async unassignEmulatorsToAccount(emulatorAssignedDto: AccountEmulatorsAssignDto, user: JwtToken) {
+    if (this.checkSuperAdminOrSelf(emulatorAssignedDto.user_id, user)) {
+      for (const deviceId of emulatorAssignedDto.device_ids) {
+        const userEmulator = await this.userEmulatorRepository.findOne({
+          where: { device: { device_id: deviceId }, user: { id: emulatorAssignedDto.user_id } },
+          select: { id: true }
+        } as FindOneOptions<UserEmulators>);
+        if (!userEmulator) throw new NotFoundException('User-Emulator Relation not found');
+        await this.accountEmulatorRepository.delete({
+          userEmulator: { id: userEmulator.id },
+          account: { id: emulatorAssignedDto.accountId }
+        });
+      }
+    }
+  }
+
+  /**
    * Assigns an emulator to specific accounts for a user.
    * @param emulatorAssignedDto - DTO containing the emulator assignment details.
    * @param user - The JWT token of the user performing the assignment.
@@ -289,5 +311,13 @@ export class EmulatorService {
     } else {
       throw new NotFoundException(`Device with id ${deviceId} not found`);
     }
+  }
+
+  findLinkedDevices(deviceId: string) {
+    return this.accountEmulatorRepository.find({
+      where: { userEmulator: { device: { device_id: deviceId } } },
+      select: { account: { account_name: true, id: true, is_admin: true } },
+      relations: { account: true }
+    });
   }
 }

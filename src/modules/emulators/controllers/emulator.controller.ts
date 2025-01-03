@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { EmulatorDto } from '../dtos/emulator.dto';
 import { EmulatorService } from '../services/emulator.service';
@@ -27,6 +27,14 @@ export class EmulatorController {
   @ApiConsumes('application/json', 'text/plain')
   findAll(@Req() authUser: AuthUser) {
     return this.emulatorService.findAll(authUser.user);
+  }
+
+  @Get('linkedAccounts')
+  @UseGuards(SuperAdmin)
+  @ApiOperation({ description: 'Android users or Emulator Admin can view emulators' })
+  @ApiConsumes('application/json', 'text/plain')
+  findLinkAccounts(@Query('deviceId') deviceId: string) {
+    return this.emulatorService.findLinkedDevices(deviceId);
   }
 
   @Post()
@@ -122,6 +130,21 @@ export class EmulatorController {
     return {
       status: 200,
       message: `Devices have been assigned to an account`
+    };
+  }
+
+  @ApiBody({
+    type: AccountEmulatorsAssignDto,
+    description: 'Unassign emulators to one account dto'
+  })
+  @UseGuards(AndroidAdmin)
+  @ApiConsumes('application/json', 'text/plain')
+  @Post('unassign-multi-emulators')
+  async unAssignEmulatorsToAccount(@Body() emulatorLinkDto: AccountEmulatorsAssignDto, @Req() authUser: AuthUser) {
+    await this.emulatorService.unassignEmulatorsToAccount(emulatorLinkDto, authUser.user);
+    return {
+      status: 200,
+      message: `Devices have been unassigned to an account`
     };
   }
 }
