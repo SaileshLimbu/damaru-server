@@ -9,7 +9,7 @@ export class AccountEmulators {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Account, (account) => account.id)
+  @ManyToOne(() => Account, (account) => account.devices)
   account: Account;
 
   @ManyToOne(() => UserEmulators, (userEmulator) => userEmulator.accountEmulator)

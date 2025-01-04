@@ -1,5 +1,12 @@
 import { Account } from '../entities/account.entity';
-import { HttpException, HttpStatus, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindManyOptions, FindOneOptions, Repository } from 'typeorm';
 import { CreateAccountDto } from '../dtos/create.account.dto';
@@ -7,6 +14,8 @@ import { DateUtils } from '../../../common/utils/date.utils';
 import { StringUtils } from '../../../common/utils/string.utils';
 import { Roles, SubRoles } from '../../users/enums/roles';
 import { JwtToken } from '../../auth/interfaces/jwt_token';
+import { Utils } from '../../../common/utils/utils';
+import { ConfigService } from '@nestjs/config';
 
 /**
  * Service for managing accounts, including creation, retrieval, updating, and deletion,
@@ -16,8 +25,10 @@ import { JwtToken } from '../../auth/interfaces/jwt_token';
 export class AccountsService {
   constructor(
     @InjectRepository(Account)
-    private readonly accountRepository: Repository<Account>
-  ) {}
+    private readonly accountRepository: Repository<Account>,
+    private readonly configService: ConfigService
+  ) {
+  }
 
   /**
    * Creates a new account for a user, ensuring only one admin account per user if applicable.
@@ -80,21 +91,24 @@ export class AccountsService {
   async update(id: number, updateAccountDto: Partial<CreateAccountDto>, jwt: JwtToken) {
     const accountBelongToUser = await this.findUserByAccount(id);
     if (!accountBelongToUser) throw new NotFoundException('Account not found');
-    if (jwt.role === Roles.SuperAdmin || accountBelongToUser?.user?.id === jwt.sub) {
-      if (
-        jwt.role === Roles.SuperAdmin ||
-        jwt.subRole === SubRoles.AndroidAdmin ||
-        (jwt.subRole === SubRoles.AndroidAccount && id === jwt.accountId)
-      ) {
-        const updateFields: Partial<CreateAccountDto & { updated_at: Date; first_login?: boolean }> = {};
+    if (jwt.role === Roles.SuperAdmin || (accountBelongToUser?.user?.id === jwt.sub && jwt.subRole === SubRoles.AndroidAdmin)) {
+      const updateFields: Partial<CreateAccountDto & { updated_at: Date; first_login?: boolean }> = {};
 
-        if (updateAccountDto.account_name) {
-          updateFields.account_name = updateAccountDto.account_name;
+      if (updateAccountDto.account_name) {
+        updateFields.account_name = updateAccountDto.account_name;
+      }
+      if (updateAccountDto.pin) {
+        const pinExist = await this.accountRepository.findOne({
+          where: {
+            user: { id: accountBelongToUser?.user?.id },
+            pin: updateAccountDto.pin
+          }
+        });
+        if (pinExist) {
+          throw new BadRequestException('This PIN is already in use by another account. Please choose a different PIN.');
         }
-        if (updateAccountDto.pin) {
-          updateFields.pin = updateAccountDto.pin;
-          updateFields.first_login = false;
-        }
+        updateFields.pin = updateAccountDto.pin;
+        updateFields.first_login = false;
 
         updateFields.updated_at = DateUtils.today();
 
@@ -131,10 +145,19 @@ export class AccountsService {
   /**
    * Finds an account by its ID.
    * @param id - The ID of the account.
+   * @param token jwt token details of the requesting user
    * @returns The account entity or null if not found.
    */
-  findOne(id: number): Promise<Account | null> {
-    return this.accountRepository.findOneBy({ id });
+  async findOne(id: number, token: JwtToken) {
+    const accountDetails = await this.accountRepository.findOne({ where: { id: id }, relations: { user: true, devices: { userEmulator: { device: true}}}});
+    if(!accountDetails) throw new NotFoundException('Account not found');
+    if(token.sub !== accountDetails.user.id) throw new UnauthorizedException('You are not authorized to view this account')
+    const devices = [];
+    accountDetails.devices.map((device)=> {
+      device.userEmulator.device.screenshot = device.userEmulator.device.screenshot ?? Utils.getDefaultScreenShot(this.configService.get('SCREENSHOT_URL'));
+      devices.push(device.userEmulator.device);
+    });
+    return {...accountDetails, devices };
   }
 
   /**

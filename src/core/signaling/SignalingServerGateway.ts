@@ -16,7 +16,6 @@ import { UseGuards } from '@nestjs/common';
 import { EmulatorService } from '../../modules/emulators/services/emulator.service';
 import { EmulatorStatus } from '../../modules/emulators/interfaces/emulator.status';
 import { ActivityLogService } from '../../modules/activity_logs/services/activity_log.service';
-import { Actions } from '../../modules/activity_logs/enums/Actions';
 import { EmulatorAdmin } from '../guards/emulator_admin.guard';
 import { JwtToken } from '../../modules/auth/interfaces/jwt_token';
 import { AndroidUsers } from '../guards/android_user.guard';
@@ -47,17 +46,10 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
   async handleStartStreaming(@ConnectedSocket() client: Socket, @MessageBody() { deviceId }: { deviceId: string }) {
     console.log('Started', { message: `Streaming started: ${deviceId}` });
     console.log('user', client.handshake['user'] as JwtToken);
-    const user = client.handshake['user'].sub;
+    // const user = client.handshake['user'].sub;
     this.connections.set(deviceId, client);
-    console.log('Started', { message: `Streaming started. for ${deviceId}` });
     if (deviceId) {
       await this.emulatorService.update(deviceId, { status: EmulatorStatus.online });
-      await this.activityLogService.log({
-        user_id: user,
-        device_id: deviceId,
-        action: Actions.START_STREAMING,
-        metadata: { message: 'Streaming started.', startedBy: user, on: Date.now() }
-      });
     }
   }
 
@@ -97,13 +89,24 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
   @UseGuards(WsJwtGuard, EmulatorUsers)
   @SubscribeMessage('IceCandidate')
   handleIceCandidate(
-    @MessageBody() { isEmulator, clientId, deviceId, iceCandidate }: { isEmulator:boolean, clientId: string; deviceId: string; iceCandidate: RTCIceCandidate }
+    @MessageBody()
+    {
+      isEmulator,
+      clientId,
+      deviceId,
+      iceCandidate
+    }: {
+      isEmulator: boolean;
+      clientId: string;
+      deviceId: string;
+      iceCandidate: RTCIceCandidate;
+    }
   ) {
-    const emulatorSocket: Socket = isEmulator ? this.connections.get(clientId) : this.connections.get(deviceId)
+    const emulatorSocket: Socket = isEmulator ? this.connections.get(clientId) : this.connections.get(deviceId);
     emulatorSocket?.emit('IceCandidate', { iceCandidate, clientId, deviceId, isEmulator });
   }
 
-  // @UseGuards(WsJwtGuard, EmulatorUsers)
+  @UseGuards(WsJwtGuard, EmulatorUsers)
   @SubscribeMessage('Disconnect')
   disconnect(@MessageBody() { clientId, deviceId }: { clientId: string; deviceId: string }) {
     console.log('disconnect', clientId, deviceId);

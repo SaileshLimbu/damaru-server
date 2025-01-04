@@ -7,7 +7,6 @@ import { EmulatorStatus } from '../interfaces/emulator.status';
 import { UserEmulators } from '../entities/user-emulators';
 import { DateUtils } from '../../../common/utils/date.utils';
 import { EmulatorLinkDto } from '../dtos/emulator-link.dto';
-import { ActivityLogService } from '../../activity_logs/services/activity_log.service';
 import { Actions } from '../../activity_logs/enums/Actions';
 import { JwtToken } from '../../auth/interfaces/jwt_token';
 import { Roles, SubRoles } from '../../users/enums/roles';
@@ -18,6 +17,7 @@ import { AccountEmulators } from '../entities/account-emulators';
 import { AccountStatus } from '../interfaces/account.status';
 import { AccountsService } from '../../accounts/services/account.service';
 import { AccountEmulatorsAssignDto } from '../dtos/account-emulators-assign.dto';
+import { Utils } from '../../../common/utils/utils';
 
 /**
  * EmulatorService is responsible for managing emulator-related operations,
@@ -34,7 +34,6 @@ export class EmulatorService {
     private readonly userEmulatorRepository: Repository<UserEmulators>,
     @InjectRepository(AccountEmulators)
     private readonly accountEmulatorRepository: Repository<AccountEmulators>,
-    private readonly activityLogService: ActivityLogService,
     private readonly configService: ConfigService,
     private readonly accountService: AccountsService
   ) {}
@@ -51,7 +50,7 @@ export class EmulatorService {
       state: EmulatorState.AVAILABLE,
       status: EmulatorStatus.offline
     };
-    await this.logAction(Actions.CREATE_EMULATOR, emulatorDetails, userId);
+    this.logAction(Actions.CREATE_EMULATOR, emulatorDetails, userId);
     await this.emulatorRepository.insert(emulatorDetails);
     return { status: HttpStatus.OK, message: 'New device has been added' };
   }
@@ -129,14 +128,20 @@ export class EmulatorService {
           where: { device: { device_id: deviceId }, user: { id: emulatorAssignedDto.user_id } },
           select: { id: true }
         } as FindOneOptions<UserEmulators>);
-        await this.accountEmulatorRepository.upsert(
-          {
-            userEmulator: { id: userEmulator.id },
-            status: AccountStatus.ACTIVE,
-            account: { id: emulatorAssignedDto.accountId }
-          },
-          ['account.id', 'userEmulator.id']
-        );
+        if (userEmulator) {
+          try {
+            await this.accountEmulatorRepository.upsert(
+              {
+                userEmulator: { id: userEmulator.id },
+                status: AccountStatus.ACTIVE,
+                account: { id: emulatorAssignedDto.accountId }
+              },
+              ['account.id', 'userEmulator.id']
+            );
+          } catch (e) {
+            console.log(`Cannot assign Account:${emulatorAssignedDto.accountId}-UserEmulator:${userEmulator.id}`);
+          }
+        }
       }
     }
   }
@@ -154,11 +159,42 @@ export class EmulatorService {
           where: { device: { device_id: deviceId }, user: { id: emulatorAssignedDto.user_id } },
           select: { id: true }
         } as FindOneOptions<UserEmulators>);
-        if (!userEmulator) throw new NotFoundException('User-Emulator Relation not found');
-        await this.accountEmulatorRepository.delete({
-          userEmulator: { id: userEmulator.id },
-          account: { id: emulatorAssignedDto.accountId }
-        });
+        if (userEmulator) {
+          try {
+            await this.accountEmulatorRepository.delete({
+              userEmulator: { id: userEmulator.id },
+              account: { id: emulatorAssignedDto.accountId }
+            });
+          } catch (e) {
+            console.log(`Cannot delete Account:${emulatorAssignedDto.accountId}-UserEmulator:${userEmulator.id}`);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Unassigns an emulator to specific accounts for a user.
+   * @param emulatorAssignedDto - DTO containing the emulator assignment details.
+   * @param user - The JWT token of the user performing the assignment.
+   * @returns void
+   */
+  async unassignEmulatorFromAccounts(emulatorAssignedDto: EmulatorAssignDto) {
+    const userEmulator = await this.userEmulatorRepository.findOne({
+      where: { device: { device_id: emulatorAssignedDto.device_id }, user: { id: emulatorAssignedDto.user_id } },
+      select: { id: true }
+    });
+    if (userEmulator) {
+      for (const account of emulatorAssignedDto.accountIds) {
+        try {
+          await this.accountEmulatorRepository.delete({
+            userEmulator: { id: userEmulator.id },
+            status: AccountStatus.ACTIVE,
+            account: { id: account }
+          });
+        } catch (e) {
+          console.log(`Cannot delete Account:${account}-UserEmulator:${userEmulator.id}`);
+        }
       }
     }
   }
@@ -175,15 +211,21 @@ export class EmulatorService {
         where: { device: { device_id: emulatorAssignedDto.device_id }, user: { id: emulatorAssignedDto.user_id } },
         select: { id: true }
       });
-      for (const account of emulatorAssignedDto.accountIds) {
-        await this.accountEmulatorRepository.upsert(
-          {
-            userEmulator: { id: userEmulator.id },
-            status: AccountStatus.ACTIVE,
-            account: { id: account }
-          },
-          ['account.id', 'userEmulator.id']
-        );
+      if (userEmulator) {
+        for (const account of emulatorAssignedDto.accountIds) {
+          try {
+            await this.accountEmulatorRepository.upsert(
+              {
+                userEmulator: { id: userEmulator.id },
+                status: AccountStatus.ACTIVE,
+                account: { id: account }
+              },
+              ['account.id', 'userEmulator.id']
+            );
+          } catch (e) {
+            console.log(`Cannot assign emulator, account:${account} userEmulator: ${userEmulator.id}`);
+          }
+        }
       }
     }
   }
@@ -247,7 +289,7 @@ export class EmulatorService {
    * @returns A promise that resolves after logging the action.
    */
   private logAction(action: Actions, metadata: object, userId?: number) {
-    return this.activityLogService.log({ action, metadata, user_id: userId });
+    console.log({ action, metadata, user_id: userId });
   }
 
   /**
@@ -258,7 +300,7 @@ export class EmulatorService {
   private emulatorResponseMapper(emulators: Array<Emulator>) {
     return emulators
       .map((emulator) => {
-        emulator.screenshot = emulator.screenshot ?? `${this.configService.get('SCREENSHOT_URL')}/default.png`;
+        emulator.screenshot = emulator.screenshot ?? Utils.getDefaultScreenShot(this.configService.get('SCREENSHOT_URL'));
         return emulator.state === EmulatorState.AVAILABLE ? this.mapAvailableEmulators(emulator) : this.mapRegisteredEmulators(emulator);
       })
       .filter((emulator) => emulator);
@@ -305,7 +347,7 @@ export class EmulatorService {
     const savedFileName = `${deviceId}.png`;
     const emulator = await this.emulatorRepository.findOne({ where: { device_id: deviceId } } as FindOneOptions<Emulator>);
     if (emulator) {
-      emulator.screenshot = `${this.configService.get<string>('SCREENSHOT_URL')}/${savedFileName}`;
+      emulator.screenshot = Utils.getDefaultScreenShot(this.configService.get('SCREENSHOT_URL'), savedFileName);
       await this.emulatorRepository.save(emulator);
       return emulator;
     } else {
@@ -313,11 +355,16 @@ export class EmulatorService {
     }
   }
 
-  findLinkedDevices(deviceId: string) {
-    return this.accountEmulatorRepository.find({
+  async findLinkedDevices(deviceId: string) {
+    const accountEmulators = await this.accountEmulatorRepository.find({
       where: { userEmulator: { device: { device_id: deviceId } } },
       select: { account: { account_name: true, id: true, is_admin: true } },
       relations: { account: true }
     });
+    return accountEmulators
+      .filter((accountEmulator) => !accountEmulator.account.is_admin)
+      .map((accountEmulator) => {
+        return { id: accountEmulator.account.id, account_name: accountEmulator.account.account_name };
+      });
   }
 }

@@ -30,7 +30,7 @@ export class EmulatorController {
   }
 
   @Get('linkedAccounts')
-  @UseGuards(SuperAdmin)
+  @UseGuards(AndroidAdmin)
   @ApiOperation({ description: 'Android users or Emulator Admin can view emulators' })
   @ApiConsumes('application/json', 'text/plain')
   findLinkAccounts(@Query('deviceId') deviceId: string) {
@@ -145,6 +145,21 @@ export class EmulatorController {
     return {
       status: 200,
       message: `Devices have been unassigned to an account`
+    };
+  }
+
+  @ApiBody({
+    type: EmulatorAssignDto,
+    description: 'Unassign emulator from multiple account dto'
+  })
+  @UseGuards(AndroidAdmin)
+  @ApiConsumes('application/json', 'text/plain')
+  @Post('unassign-multi-accounts')
+  async unAssignEmulatorFromAccounts(@Body() emulatorLinkDto: EmulatorAssignDto) {
+    await this.emulatorService.unassignEmulatorFromAccounts(emulatorLinkDto);
+    return {
+      status: 200,
+      message: `Device have been unassigned from accounts`
     };
   }
 }

@@ -10,6 +10,7 @@ import {
 import { Users } from "../../users/entities/user.entity";
 import { EmulatorConnections } from "../../emulators/entities/emulator-connections";
 import { ActivityLog } from "../../activity_logs/entities/activity_log.entity";
+import { AccountEmulators } from '../../emulators/entities/account-emulators';
 
 @Entity()
 export class Account {
@@ -45,4 +46,7 @@ export class Account {
 
   @OneToMany(() => ActivityLog, (activityLog) => activityLog.account)
   activityLogs: ActivityLog[];
+
+  @OneToMany(() => AccountEmulators, (accountEmulator) => accountEmulator.account)
+  devices: AccountEmulators[];
 }

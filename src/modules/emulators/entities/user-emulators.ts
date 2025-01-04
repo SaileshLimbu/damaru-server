@@ -11,7 +11,7 @@ export class UserEmulators {
   @ManyToOne(() => Users, (user) => user.emulators)
   user: Users;
 
-  @ManyToOne(() => Emulator, (emulator) => emulator.userEmulators)
+  @ManyToOne(() => Emulator, (emulator) => emulator.userEmulators, { onDelete: 'CASCADE' })
   device: Emulator;
 
   @Column()

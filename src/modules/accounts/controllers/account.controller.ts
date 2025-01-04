@@ -22,6 +22,14 @@ export class AccountsController {
     return this.accountsService.findAll(authUser.user);
   }
 
+  @Get(':id')
+  @UseGuards(AndroidAdmin)
+  @ApiOperation({ description: 'Root user can view account details' })
+  @ApiConsumes('application/json', 'text/plain')
+  findOne(@Param('id') id: number, @Req() authUser: AuthUser) {
+    return this.accountsService.findOne(id, authUser.user);
+  }
+
   @Post()
   @UseGuards(AndroidAdmin)
   @ApiBody({
