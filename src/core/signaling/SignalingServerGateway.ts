@@ -16,10 +16,8 @@ import { UseGuards } from '@nestjs/common';
 import { EmulatorService } from '../../modules/emulators/services/emulator.service';
 import { EmulatorStatus } from '../../modules/emulators/interfaces/emulator.status';
 import { EmulatorAdmin } from '../guards/emulator_admin.guard';
-import { JwtToken } from '../../modules/auth/interfaces/jwt_token';
 import { AndroidUsers } from '../guards/android_user.guard';
 import { EmulatorUsers } from '../guards/emulator_user.guard';
-import { Roles } from '../../modules/users/enums/roles';
 
 @WebSocketGateway({
   namespace: 'signaling',
@@ -36,15 +34,14 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
   @WebSocketServer()
   server: Server;
   private connections = new Map<string, Socket>();
-  private connectedUsers = { superAdmins: [], emulatorAdmins: [], androidUsers: [] };
-  private readonly ROOM_SUPER_ADMIN = 'SuperAdmins';
+  private clientToSocket = new Map<string, string>();
 
   @UseGuards(WsJwtGuard, EmulatorAdmin)
   @SubscribeMessage('StartStreaming')
   async handleStartStreaming(@ConnectedSocket() client: Socket, @MessageBody() { deviceId }: { deviceId: string }) {
     console.log('Started', { message: `Streaming started: ${deviceId}` });
     if (deviceId) {
-      this.connections.set(deviceId, client);
+      this.clientToSocket.set(deviceId, client.id);
       await this.emulatorService.update(deviceId, { status: EmulatorStatus.online });
     }
   }
@@ -62,12 +59,12 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
       sdp: string;
     }
   ) {
-    const emulatorSocket = this.connections.get(deviceId);
+    const emulatorSocket: Socket = this.server.sockets.sockets.get(this.clientToSocket.get(deviceId));
     if (!emulatorSocket) {
       throw new WsException('Emulator not found');
     }
     const accountId: string = client.handshake['user'].accountId;
-    this.connections.set(accountId, client);
+    this.clientToSocket.set(accountId, client.id);
     const response = { sdp, clientId: accountId };
     emulatorSocket.emit('Offer', response);
   }
@@ -76,7 +73,8 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
   @SubscribeMessage('Answer')
   async handleAnswer(@MessageBody() { clientId, sdp }: { clientId: string; sdp: string }) {
     if (clientId) {
-      this.connections.get(clientId).emit('Answer', { sdp });
+      await this.emulatorService.connectEmulator(clientId);
+      this.server.sockets.sockets.get(this.clientToSocket.get(clientId)).emit('Answer', { sdp });
     }
   }
 
@@ -96,8 +94,13 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
       iceCandidate: RTCIceCandidate;
     }
   ) {
-    const emulatorSocket: Socket = isEmulator ? this.connections.get(clientId) : this.connections.get(deviceId);
-    emulatorSocket?.emit('IceCandidate', { iceCandidate, clientId, deviceId, isEmulator });
+    const id = isEmulator ? clientId : deviceId;
+    this.server.sockets.sockets.get(this.clientToSocket.get(id)).emit('IceCandidate', {
+      iceCandidate,
+      clientId,
+      deviceId,
+      isEmulator
+    });
   }
 
   @UseGuards(WsJwtGuard, EmulatorUsers)
@@ -113,46 +116,23 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
       try {
         let auth_token = socket.handshake.headers.authorization;
         auth_token = auth_token.split(' ')[1];
-        console.log({ auth_token });
-        const json: JwtToken = this.jwtService.verify(auth_token);
-        console.log(json);
-        console.log('Auth token validated!');
-        if (json.role === Roles.SuperAdmin.toString()) {
-          socket.join(this.ROOM_SUPER_ADMIN);
-          this.connectedUsers.superAdmins.push({ email: json.email, userId: json.sub, clientId: socket.id });
-        } else if (json.role === Roles.EmulatorAdmin.toString()) {
-          this.connectedUsers.emulatorAdmins.push({ email: json.email, userId: json.sub, clientId: socket.id });
-        } else {
-          this.connectedUsers.androidUsers.push({
-            email: json.email,
-            userId: json.sub,
-            clientId: socket.id,
-            accountId: json.accountId,
-            accountName: json.accountName
-          });
-        }
+        this.jwtService.verify(auth_token);
         next();
       } catch (e) {
-        console.log('on error');
         next(new WsException('Unauthorized'));
       }
     });
   }
 
   handleConnection(client: Socket): any {
-    this.server.to(this.ROOM_SUPER_ADMIN).emit('OnlineUsers', this.connectedUsers);
     console.log('Client connected', client.id);
   }
 
   async handleDisconnect(client: Socket) {
-    this.connectedUsers.androidUsers = this.connectedUsers.androidUsers.filter((user) => user.clientId !== client.id);
-    this.connectedUsers.superAdmins = this.connectedUsers.superAdmins.filter((user) => user.clientId !== client.id);
-    this.connectedUsers.emulatorAdmins = this.connectedUsers.emulatorAdmins.filter((user) => user.clientId !== client.id);
-    this.connections.forEach((socket, deviceId) => {
-      if (socket.id == client.id) {
-        this.emulatorService.update(deviceId, { status: EmulatorStatus.offline });
+    this.clientToSocket.forEach((value, key) => {
+      if (value === client.id) {
+        this.emulatorService.disconnectEmulator(key);
       }
     });
-    console.log('Client disconnected', client.id);
   }
 }

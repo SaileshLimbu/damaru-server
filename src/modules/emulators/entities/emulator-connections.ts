@@ -12,7 +12,7 @@ export class EmulatorConnections {
   })
   accountEmulators: AccountEmulators;
 
-  @CreateDateColumn({ type: 'date', nullable: true })
+  @CreateDateColumn({ type: 'date' })
   connected_at: Date;
 
   @UpdateDateColumn({ type: 'date', nullable: true })
@@ -20,7 +20,4 @@ export class EmulatorConnections {
 
   @Column({ type: 'text', nullable: true })
   message: string;
-
-  @Column({ type: 'date', nullable: true })
-  expiry_at: Date;
 }

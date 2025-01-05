@@ -1,7 +1,7 @@
 import { Emulator } from '../entities/emulator.entity';
 import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOneOptions, Repository } from 'typeorm';
+import { FindOneOptions, IsNull, Repository } from 'typeorm';
 import { EmulatorDto } from '../dtos/emulator.dto';
 import { EmulatorStatus } from '../interfaces/emulator.status';
 import { UserEmulators } from '../entities/user-emulators';
@@ -20,6 +20,7 @@ import { AccountEmulatorsAssignDto } from '../dtos/account-emulators-assign.dto'
 import { Utils } from '../../../common/utils/utils';
 import { DamaruResponse } from '../../../common/interfaces/DamaruResponse';
 import { ExtendExpiryDto } from '../dtos/extend-expiry.dto';
+import { EmulatorConnections } from '../entities/emulator-connections';
 
 /**
  * EmulatorService is responsible for managing emulator-related operations,
@@ -36,6 +37,8 @@ export class EmulatorService {
     private readonly userEmulatorRepository: Repository<UserEmulators>,
     @InjectRepository(AccountEmulators)
     private readonly accountEmulatorRepository: Repository<AccountEmulators>,
+    @InjectRepository(EmulatorConnections)
+    private readonly emulatorConnectionsRepository: Repository<EmulatorConnections>,
     private readonly configService: ConfigService,
     private readonly accountService: AccountsService
   ) {}
@@ -384,5 +387,29 @@ export class EmulatorService {
           return { id: accountEmulator.account.id, account_name: accountEmulator.account.account_name };
         })
     };
+  }
+
+  async connectEmulator(clientId: string) {
+    await this.emulatorConnectionsRepository.insert({
+      accountEmulators: { account: { id: clientId } },
+      disconnected_at: null
+    });
+  }
+
+  async disconnectEmulator(clientId: string) {
+    const emulator = await this.emulatorRepository.findOne({ where: { device_id: clientId } });
+    if (emulator) {
+      await this.emulatorRepository.update(clientId, { status: EmulatorStatus.offline });
+    } else {
+      const emulatorConnection = await this.emulatorConnectionsRepository.findOne({
+        where: {
+          accountEmulators: { account: { id: clientId } },
+          disconnected_at: IsNull()
+        }
+      });
+      if (emulatorConnection) {
+        await this.emulatorConnectionsRepository.update(emulatorConnection.id, { disconnected_at: DateUtils.today() });
+      }
+    }
   }
 }
