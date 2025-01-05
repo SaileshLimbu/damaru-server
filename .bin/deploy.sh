@@ -6,6 +6,9 @@ set -e
 REMOTE_DIR="/home/ubuntu/damaru-node"
 DIST_ZIP="dist.zip"
 
+# SSH into the server and deploy
+echo "Deploying on server..."
+
 echo "Stopping PM2 process..."
 pm2 stop 0
 

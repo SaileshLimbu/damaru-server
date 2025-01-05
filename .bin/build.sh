@@ -24,6 +24,3 @@ zip -r $DIST_ZIP $DIST_DIR
 # Transfer zip to remote server
 echo "Uploading zip file to server..."
 scp $DIST_ZIP $SERVER:$REMOTE_DIR
-
-# SSH into the server and deploy
-echo "Deploying on server..."
