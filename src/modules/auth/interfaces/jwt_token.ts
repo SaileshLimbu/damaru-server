@@ -1,8 +1,8 @@
 export interface JwtToken {
-  sub: number;
+  sub: string;
   email: string;
   role: string;
   subRole?: string;
   accountName?: string;
-  accountId?: number;
+  accountId?: string;
 }

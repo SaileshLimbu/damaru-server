@@ -2,10 +2,10 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CoreDataSeederService } from './coredataseeder.service';
 import { Role } from '../../modules/users/entities/role.entity';
-import { EncryptionEntity } from '../../modules/app/entities/encryption.entity';
+import { Encryption } from '../../modules/app/entities/encryption';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Role, EncryptionEntity])],
+  imports: [TypeOrmModule.forFeature([Role, Encryption])],
   providers: [CoreDataSeederService],
   exports: [CoreDataSeederService]
 })

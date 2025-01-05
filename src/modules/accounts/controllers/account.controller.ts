@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../../../core/guards/jwt.guard';
 import { AndroidAdmin } from '../../../core/guards/android_admin.guard';
 import { AuthUser } from '../../../common/interfaces/AuthUser';
 import { AndroidUsers } from '../../../core/guards/android_user.guard';
+import { DamaruResponse } from '../../../common/interfaces/DamaruResponse';
 
 @ApiTags('Accounts')
 @ApiBearerAuth()
@@ -18,7 +19,7 @@ export class AccountsController {
   @UseGuards(AndroidUsers)
   @ApiOperation({ description: 'Root user can view all his accounts, normal user can only view his account' })
   @ApiConsumes('application/json', 'text/plain')
-  findAll(@Req() authUser: AuthUser) {
+  findAll(@Req() authUser: AuthUser): Promise<DamaruResponse> {
     return this.accountsService.findAll(authUser.user);
   }
 
@@ -26,7 +27,7 @@ export class AccountsController {
   @UseGuards(AndroidAdmin)
   @ApiOperation({ description: 'Root user can view account details' })
   @ApiConsumes('application/json', 'text/plain')
-  findOne(@Param('id') id: number, @Req() authUser: AuthUser) {
+  findOne(@Param('id') id: string, @Req() authUser: AuthUser): Promise<DamaruResponse> {
     return this.accountsService.findOne(id, authUser.user);
   }
 
@@ -38,7 +39,7 @@ export class AccountsController {
   })
   @ApiOperation({ description: 'Root user can only create new accounts' })
   @ApiConsumes('application/json', 'text/plain')
-  create(@Body() createAccountDto: CreateAccountDto, @Req() authUser: AuthUser) {
+  create(@Body() createAccountDto: CreateAccountDto, @Req() authUser: AuthUser): Promise<DamaruResponse> {
     return this.accountsService.create({ ...createAccountDto, userId: authUser.user.sub });
   }
 
@@ -50,14 +51,14 @@ export class AccountsController {
   @ApiConsumes('application/json', 'text/plain')
   @UseGuards(AndroidUsers)
   @ApiOperation({ description: 'Root user can update his any accounts, normal user can update his account only' })
-  update(@Param('id') id: number, @Body() updateAccountDto: Partial<CreateAccountDto>, @Req() authUser: AuthUser) {
-    return this.accountsService.update(parseInt(id.toString(), 10), updateAccountDto, authUser.user);
+  update(@Param('id') id: string, @Body() updateAccountDto: Partial<CreateAccountDto>, @Req() authUser: AuthUser): Promise<DamaruResponse> {
+    return this.accountsService.update(id, updateAccountDto, authUser.user);
   }
 
   @Delete(':id')
   @UseGuards(AndroidUsers)
   @ApiConsumes('application/json', 'text/plain')
-  delete(@Param('id') id: number, @Req() authUser: AuthUser) {
-    return this.accountsService.remove(parseInt(id.toString(), 10), authUser.user);
+  delete(@Param('id') id: string, @Req() authUser: AuthUser): Promise<DamaruResponse> {
+    return this.accountsService.remove(id, authUser.user);
   }
 }

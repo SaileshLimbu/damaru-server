@@ -10,6 +10,7 @@ import { HashUtils } from '../../../common/utils/hash.utils';
 import { Roles, SubRoles } from '../../users/enums/roles';
 import { Account } from '../../accounts/entities/account.entity';
 import { DateUtils } from '../../../common/utils/date.utils';
+import { DamaruResponse } from '../../../common/interfaces/DamaruResponse';
 
 @Injectable()
 export class AuthService {
@@ -68,17 +69,20 @@ export class AuthService {
     throw new UnauthorizedException('Invalid credentials');
   }
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto): Promise<DamaruResponse> {
     const { jwtPayload, firstLogin } = await this.validateUser(loginDto);
     const token = this.jwtService.sign(jwtPayload);
     return {
-      accessToken: token,
-      firstLogin,
-      isSuperAdmin: jwtPayload.role === Roles.SuperAdmin,
-      isRootUser: jwtPayload.role === Roles.AndroidUser && jwtPayload.subRole === SubRoles.AndroidAdmin,
-      userId: jwtPayload.sub,
-      accountName: jwtPayload.accountName,
-      accountId: jwtPayload.accountId
+      message: 'Successfully authenticated',
+      data: {
+        accessToken: token,
+        firstLogin,
+        isSuperAdmin: jwtPayload.role === Roles.SuperAdmin,
+        isRootUser: jwtPayload.role === Roles.AndroidUser && jwtPayload.subRole === SubRoles.AndroidAdmin,
+        userId: jwtPayload.sub,
+        accountName: jwtPayload.accountName,
+        accountId: jwtPayload.accountId
+      }
     };
   }
 }

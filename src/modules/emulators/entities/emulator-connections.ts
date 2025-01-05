@@ -3,8 +3,8 @@ import { AccountEmulators } from './account-emulators';
 
 @Entity()
 export class EmulatorConnections {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @ManyToOne(() => AccountEmulators, (accountEmulators) => accountEmulators.accountEmulatorConnections, {
     nullable: true,

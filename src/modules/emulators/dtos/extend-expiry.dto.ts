@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDate, IsOptional, IsString } from 'class-validator';
+import { IsNumber, IsString } from 'class-validator';
 
-export class EmulatorLinkDto {
+export class ExtendExpiryDto {
   @ApiProperty()
   @IsString()
   device_id: string;
@@ -10,7 +10,7 @@ export class EmulatorLinkDto {
   @IsString()
   user_id: string;
 
-  @IsOptional()
-  @IsDate()
-  expiry_at?: Date;
+  @ApiProperty()
+  @IsNumber()
+  days?: number;
 }

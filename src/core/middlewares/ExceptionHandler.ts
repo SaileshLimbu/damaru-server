@@ -1,9 +1,7 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus, Logger } from '@nestjs/common';
 import { Response } from 'express';
-import { CustomException } from '../../common/exceptions/CustomException';
 import { ConfigService } from '@nestjs/config';
 import { Environments } from '../../common/interfaces/environments';
-import { SQLITE_CONSTRAINT } from '../constants/exceptions';
 
 /**
  * CustomException class implements the NestJS ExceptionFilter interface
@@ -30,28 +28,12 @@ export class ExceptionHandler implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
 
-    let statusCode: number;
-    let message: string | object = exception.message;
-    console.log('interception exception', exception);
-    if (exception instanceof CustomException) {
-      statusCode = exception.statusCode;
-    } else if (exception instanceof HttpException) {
-      statusCode = exception.getStatus();
-      message = exception.getResponse();
-    }
-    else if(exception.message.includes(SQLITE_CONSTRAINT) ){
-      statusCode = HttpStatus.NOT_MODIFIED;
-      message = 'Not modified due to foreign key constraint failure';
-    }
-    else {
-      statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
-    }
+    const message = exception.message;
 
     // Log the exception details
     this.logger.error(
       exception.message,
       JSON.stringify({
-        statusCode,
         stack: exception.stack
       })
     );
@@ -59,15 +41,15 @@ export class ExceptionHandler implements ExceptionFilter {
     const env = this.configService.get<string>('ENVIRONMENT')
     if(env == Environments.DEVELOPMENT) {
       // Send the error response
-      response.status(statusCode).json({
-        statusCode,
+      response.status(HttpStatus.OK).json({
+        status: false,
         message,
         stack: exception.stack
       });
     } else {
       // Send the error response
-      response.status(statusCode).json({
-        statusCode,
+      response.status(HttpStatus.OK).json({
+        status: false,
         message
       });
     }

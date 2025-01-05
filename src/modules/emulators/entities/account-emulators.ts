@@ -6,8 +6,8 @@ import { EmulatorConnections } from './emulator-connections';
 @Entity()
 @Unique(['account', 'userEmulator'])
 export class AccountEmulators {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @ManyToOne(() => Account, (account) => account.devices)
   account: Account;
@@ -15,7 +15,7 @@ export class AccountEmulators {
   @ManyToOne(() => UserEmulators, (userEmulator) => userEmulator.accountEmulator)
   userEmulator: UserEmulators;
 
-  @OneToMany(() => EmulatorConnections, (accountEmulatorConnection) => accountEmulatorConnection.accountEmulators)
+  @OneToMany(() => EmulatorConnections, (accountEmulatorConnection) => accountEmulatorConnection.accountEmulators,  { onDelete: 'CASCADE' })
   accountEmulatorConnections: EmulatorConnections[];
 
   @Column()

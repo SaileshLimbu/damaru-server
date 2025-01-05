@@ -5,13 +5,13 @@ import { AccountEmulators } from './account-emulators';
 
 @Entity()
 export class UserEmulators {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @ManyToOne(() => Users, (user) => user.emulators)
   user: Users;
 
-  @ManyToOne(() => Emulator, (emulator) => emulator.userEmulators, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Emulator, (emulator) => emulator.userEmulators)
   device: Emulator;
 
   @Column()
@@ -23,6 +23,6 @@ export class UserEmulators {
   @Column({ type: 'date', nullable: true })
   unlinked_at?: Date;
 
-  @OneToMany(() => AccountEmulators, (accountEmulator) => accountEmulator.userEmulator)
+  @OneToMany(() => AccountEmulators, (accountEmulator) => accountEmulator.userEmulator,  { onDelete: 'CASCADE' })
   accountEmulator: AccountEmulators;
 }

@@ -15,7 +15,6 @@ import { WsJwtGuard } from '../guards/wsjwt.guard';
 import { UseGuards } from '@nestjs/common';
 import { EmulatorService } from '../../modules/emulators/services/emulator.service';
 import { EmulatorStatus } from '../../modules/emulators/interfaces/emulator.status';
-import { ActivityLogService } from '../../modules/activity_logs/services/activity_log.service';
 import { EmulatorAdmin } from '../guards/emulator_admin.guard';
 import { JwtToken } from '../../modules/auth/interfaces/jwt_token';
 import { AndroidUsers } from '../guards/android_user.guard';
@@ -31,8 +30,7 @@ import { Roles } from '../../modules/users/enums/roles';
 export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly jwtService: JwtService,
-    private readonly emulatorService: EmulatorService,
-    private readonly activityLogService: ActivityLogService
+    private readonly emulatorService: EmulatorService
   ) {}
 
   @WebSocketServer()
@@ -45,10 +43,8 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
   @SubscribeMessage('StartStreaming')
   async handleStartStreaming(@ConnectedSocket() client: Socket, @MessageBody() { deviceId }: { deviceId: string }) {
     console.log('Started', { message: `Streaming started: ${deviceId}` });
-    console.log('user', client.handshake['user'] as JwtToken);
-    // const user = client.handshake['user'].sub;
-    this.connections.set(deviceId, client);
     if (deviceId) {
+      this.connections.set(deviceId, client);
       await this.emulatorService.update(deviceId, { status: EmulatorStatus.online });
     }
   }
@@ -66,15 +62,13 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
       sdp: string;
     }
   ) {
-    console.log(`Offering started: ${deviceId}`);
     const emulatorSocket = this.connections.get(deviceId);
     if (!emulatorSocket) {
-      client.emit('Error', { message: 'Emulator not found.' });
-      return;
+      throw new WsException('Emulator not found');
     }
-    const accountId = client.handshake['user'].accountId;
-    this.connections.set(accountId.toString(), client);
-    const response = { sdp, clientId: accountId.toString() };
+    const accountId: string = client.handshake['user'].accountId;
+    this.connections.set(accountId, client);
+    const response = { sdp, clientId: accountId };
     emulatorSocket.emit('Offer', response);
   }
 
@@ -154,7 +148,6 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
     this.connectedUsers.androidUsers = this.connectedUsers.androidUsers.filter((user) => user.clientId !== client.id);
     this.connectedUsers.superAdmins = this.connectedUsers.superAdmins.filter((user) => user.clientId !== client.id);
     this.connectedUsers.emulatorAdmins = this.connectedUsers.emulatorAdmins.filter((user) => user.clientId !== client.id);
-    //TODO refactor here
     this.connections.forEach((socket, deviceId) => {
       if (socket.id == client.id) {
         this.emulatorService.update(deviceId, { status: EmulatorStatus.offline });

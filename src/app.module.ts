@@ -11,7 +11,9 @@ import { EncryptionService } from './core/encryption/encryption.service';
 import { SeederModule } from './core/database/seeder.module';
 import { SignalingServerModule } from './core/signaling/SignalingServerModule';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { EncryptionEntity } from './modules/app/entities/encryption.entity';
+import { Encryption } from './modules/app/entities/encryption';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ResponseInterceptor } from './core/middlewares/ResponseInterceptor';
 
 @Module({
   imports: [
@@ -25,9 +27,17 @@ import { EncryptionEntity } from './modules/app/entities/encryption.entity';
     ActivityLogModule,
     SeederModule,
     SignalingServerModule,
-    TypeOrmModule.forFeature([EncryptionEntity])
+
+    TypeOrmModule.forFeature([Encryption])
   ],
   controllers: [AppController],
-  providers: [AppService, EncryptionService]
+  providers: [
+    AppService,
+    EncryptionService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResponseInterceptor
+    }
+  ]
 })
 export class AppModule {}

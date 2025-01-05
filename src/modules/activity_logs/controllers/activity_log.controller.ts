@@ -5,6 +5,7 @@ import { CreateActivityLogDto } from '../dtos/create.activity_log.dto';
 import { JwtAuthGuard } from '../../../core/guards/jwt.guard';
 import { AndroidAdmin } from '../../../core/guards/android_admin.guard';
 import { SuperAdmin } from '../../../core/guards/super_admin.guard';
+import { DamaruResponse } from '../../../common/interfaces/DamaruResponse';
 
 @ApiTags('ActivityLogs')
 @Controller('activity-logs')
@@ -20,7 +21,7 @@ export class ActivityLogController {
   @ApiBearerAuth()
   @ApiConsumes('application/json', 'text/plain')
   @UseGuards(JwtAuthGuard, AndroidAdmin)
-  findAll() {
+  findAll(): Promise<DamaruResponse> {
     return this.activityLogService.findAll();
   }
 
@@ -32,7 +33,7 @@ export class ActivityLogController {
     description: 'ActivityLog Create'
   })
   @ApiConsumes('application/json', 'text/plain')
-  create(@Body() createActivityLogDto: CreateActivityLogDto) {
+  create(@Body() createActivityLogDto: CreateActivityLogDto): Promise<DamaruResponse> {
     return this.activityLogService.log(createActivityLogDto);
   }
 

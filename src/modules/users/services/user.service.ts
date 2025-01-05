@@ -1,7 +1,7 @@
 import { Users } from '../entities/user.entity';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindManyOptions, FindOneOptions, Repository } from 'typeorm';
+import { FindOneOptions, Repository } from 'typeorm';
 import { CreateUserDto } from '../dtos/create.user.dto';
 import { AccountsService } from '../../accounts/services/account.service';
 import { StringUtils } from '../../../common/utils/string.utils';
@@ -10,6 +10,7 @@ import { Actions } from '../../activity_logs/enums/Actions';
 import { HashUtils } from '../../../common/utils/hash.utils';
 import { Role as RoleEntity } from '../entities/role.entity';
 import { Roles } from '../enums/roles';
+import { DamaruResponse } from '../../../common/interfaces/DamaruResponse';
 
 @Injectable()
 export class UsersService {
@@ -22,7 +23,7 @@ export class UsersService {
     private readonly activityLogService: ActivityLogService
   ) {}
 
-  async create(user: CreateUserDto) {
+  async create(user: CreateUserDto): Promise<DamaruResponse> {
     const role = await this.roleRepository.findOne({ where: { name: user.role.toString() } });
     const newPassword = user.password ?? StringUtils.generateRandomAlphaNumeric(8);
     const newUser = await this.usersRepository.insert({
@@ -30,7 +31,7 @@ export class UsersService {
       password: await HashUtils.hash(newPassword),
       role: { id: role.id }
     });
-    const userId: number = newUser?.identifiers[0]?.id as number;
+    const userId: string = newUser?.identifiers[0]?.id;
     await this.activityLogService.log({ user_id: userId, action: Actions.CREATE_USER, metadata: user });
     if (user.role === Roles.AndroidUser) {
       const account = {
@@ -41,7 +42,7 @@ export class UsersService {
         last_login: null
       };
       const newAccount = await this.accountService.create(account);
-      const accountId: number = newAccount['id'];
+      const accountId: string = newAccount.data['id'];
       await this.activityLogService.log({
         user_id: userId,
         action: Actions.CREATE_ACCOUNT,
@@ -49,10 +50,10 @@ export class UsersService {
         metadata: account
       });
     }
-    return { ...(await this.findOne(userId)), password: newPassword };
+    return { message: 'User has been created', data: { ...(await this.findOne(userId)), password: newPassword } };
   }
 
-  async update(id: number, user: Partial<CreateUserDto>) {
+  async update(id: string, user: Partial<CreateUserDto>) {
     const updatedUser = {};
     if (user.role) {
       throw new BadRequestException('Role cannot be updated');
@@ -67,23 +68,36 @@ export class UsersService {
       updatedUser['email'] = user.email;
     }
     await this.activityLogService.log({ user_id: id, action: Actions.UPDATE_USER, metadata: updatedUser });
-    console.log({updatedUser})
-    return await this.usersRepository.update(id, updatedUser);
+    await this.usersRepository.update(id, updatedUser);
+    return { message: 'User details has been updated', data: updatedUser };
   }
 
-  findAll(): Promise<Users[]> {
-    return this.usersRepository.find({ relations: { accounts: true } } as FindManyOptions<Users>);
+  async findAll(): Promise<DamaruResponse> {
+    const users = await this.usersRepository.find({
+      relations: { accounts: true, emulators: true},
+      select: ['id', 'name', 'email']
+    });
+    return {
+      data: users.map((user) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        accountsCount: user.accounts.length,
+        emulatorsCount: user.emulators.length
+      }))
+    };
   }
 
-  findOne(id: number): Promise<Users> {
+  findOne(id: string): Promise<Users> {
     return this.usersRepository.findOne({
       where: { id },
       relations: { accounts: true }
     } as FindOneOptions<Users>);
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<DamaruResponse> {
     await this.activityLogService.log({ user_id: id, action: Actions.DELETE_USER, metadata: { id } });
     await this.usersRepository.delete(id);
+    return { message: 'User deleted' };
   }
 }

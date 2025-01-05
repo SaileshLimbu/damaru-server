@@ -1,17 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
 import { Actions } from '../enums/Actions';
 
 export class CreateActivityLogDto {
   @ApiProperty()
-  @IsNumber()
+  @IsString()
   @IsOptional()
-  user_id?: number;
+  user_id?: string;
 
   @ApiProperty()
-  @IsNumber()
+  @IsString()
   @IsOptional()
-  account_id?: number;
+  account_id?: string;
 
   @ApiProperty()
   @IsString()

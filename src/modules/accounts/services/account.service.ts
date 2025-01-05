@@ -1,12 +1,5 @@
 import { Account } from '../entities/account.entity';
-import {
-  BadRequestException,
-  HttpException,
-  HttpStatus,
-  Injectable,
-  NotFoundException,
-  UnauthorizedException
-} from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindManyOptions, FindOneOptions, Repository } from 'typeorm';
 import { CreateAccountDto } from '../dtos/create.account.dto';
@@ -16,6 +9,7 @@ import { Roles, SubRoles } from '../../users/enums/roles';
 import { JwtToken } from '../../auth/interfaces/jwt_token';
 import { Utils } from '../../../common/utils/utils';
 import { ConfigService } from '@nestjs/config';
+import { DamaruResponse } from '../../../common/interfaces/DamaruResponse';
 
 /**
  * Service for managing accounts, including creation, retrieval, updating, and deletion,
@@ -27,8 +21,7 @@ export class AccountsService {
     @InjectRepository(Account)
     private readonly accountRepository: Repository<Account>,
     private readonly configService: ConfigService
-  ) {
-  }
+  ) {}
 
   /**
    * Creates a new account for a user, ensuring only one admin account per user if applicable.
@@ -36,7 +29,7 @@ export class AccountsService {
    * @returns The created account with its ID included.
    * @throws HttpException if an admin account already exists for the user.
    */
-  async create(createAccountDto: CreateAccountDto) {
+  async create(createAccountDto: CreateAccountDto): Promise<DamaruResponse> {
     if (createAccountDto.is_admin) {
       const existingAdminAccounts = await this.accountRepository.find({
         where: {
@@ -60,11 +53,12 @@ export class AccountsService {
       account_name: createAccountDto.account_name,
       pin: createAccountDto.pin ?? StringUtils.generateRandomNumeric(5),
       user: { id: createAccountDto.userId },
-      is_admin: createAccountDto.is_admin
+      is_admin: createAccountDto.is_admin,
+      first_login: createAccountDto.is_admin
     };
     const accountCreated = await this.accountRepository.insert(account);
     account['id'] = accountCreated.identifiers[0].id as number;
-    return account;
+    return { data: account };
   }
 
   /**
@@ -72,7 +66,7 @@ export class AccountsService {
    * @param accountId - The ID of the account.
    * @returns The user associated with the account.
    */
-  findUserByAccount(accountId: number) {
+  findUserByAccount(accountId: string) {
     return this.accountRepository.findOne({
       where: { id: accountId },
       select: { user: { id: true } },
@@ -88,7 +82,7 @@ export class AccountsService {
    * @returns A message indicating the update status and the updated fields.
    * @throws UnauthorizedException if the user is not authorized to update the account.
    */
-  async update(id: number, updateAccountDto: Partial<CreateAccountDto>, jwt: JwtToken) {
+  async update(id: string, updateAccountDto: Partial<CreateAccountDto>, jwt: JwtToken): Promise<DamaruResponse> {
     const accountBelongToUser = await this.findUserByAccount(id);
     if (!accountBelongToUser) throw new NotFoundException('Account not found');
     if (jwt.role === Roles.SuperAdmin || (accountBelongToUser?.user?.id === jwt.sub && jwt.subRole === SubRoles.AndroidAdmin)) {
@@ -111,12 +105,9 @@ export class AccountsService {
         updateFields.first_login = false;
 
         updateFields.updated_at = DateUtils.today();
-
-        await this.accountRepository.update(id, updateFields);
-        return { message: 'Account updated', updated: updateFields };
-      } else {
-        throw new UnauthorizedException('You are not authorized to update this account');
       }
+      await this.accountRepository.update(id, updateFields);
+      return { message: 'Account updated', data: updateFields };
     } else {
       throw new UnauthorizedException('You cannot update an account you do not own');
     }
@@ -127,18 +118,26 @@ export class AccountsService {
    * @param jwtPayload - JWT token containing the user's roles and permissions.
    * @returns A list of accounts visible to the user.
    */
-  findAll(jwtPayload: JwtToken): Promise<Account[]> {
+  async findAll(jwtPayload: JwtToken): Promise<DamaruResponse> {
     if (jwtPayload.subRole === SubRoles.AndroidAdmin) {
-      return this.accountRepository.find({
-        where: { user: { id: jwtPayload.sub } }
-      } as FindManyOptions<Account>);
+      return {
+        data: await this.accountRepository.find({
+          where: { user: { id: jwtPayload.sub } }
+        } as FindManyOptions<Account>)
+      };
+    } else if (jwtPayload.role === Roles.SuperAdmin) {
+      return {
+        data: await this.accountRepository.find()
+      };
     } else {
-      return this.accountRepository.find({
-        where: {
-          user: { id: jwtPayload.sub },
-          id: jwtPayload.accountId
-        }
-      } as FindManyOptions<Account>);
+      return {
+        data: await this.accountRepository.find({
+          where: {
+            user: { id: jwtPayload.sub },
+            id: jwtPayload.accountId
+          }
+        } as FindManyOptions<Account>)
+      };
     }
   }
 
@@ -148,16 +147,25 @@ export class AccountsService {
    * @param token jwt token details of the requesting user
    * @returns The account entity or null if not found.
    */
-  async findOne(id: number, token: JwtToken) {
-    const accountDetails = await this.accountRepository.findOne({ where: { id: id }, relations: { user: true, devices: { userEmulator: { device: true}}}});
-    if(!accountDetails) throw new NotFoundException('Account not found');
-    if(token.sub !== accountDetails.user.id) throw new UnauthorizedException('You are not authorized to view this account')
-    const devices = [];
-    accountDetails.devices.map((device)=> {
-      device.userEmulator.device.screenshot = device.userEmulator.device.screenshot ?? Utils.getDefaultScreenShot(this.configService.get('SCREENSHOT_URL'));
-      devices.push(device.userEmulator.device);
+  async findOne(id: string, token: JwtToken): Promise<DamaruResponse>  {
+    const accountDetails = await this.accountRepository.findOne({
+      where: { id: id },
+      relations: { user: true, devices: { userEmulator: { device: true } } }
     });
-    return {...accountDetails, devices };
+
+    if (!accountDetails) throw new NotFoundException('Account not found');
+    if (!(token.role === Roles.SuperAdmin || token.sub === accountDetails.user.id))
+      throw new UnauthorizedException('You are not authorized to view this account');
+    const devices = [];
+
+    accountDetails.devices.map((device) => {
+
+      device.userEmulator.device.screenshot =
+        device.userEmulator.device.screenshot ?? Utils.getDefaultScreenShot(this.configService.get('SCREENSHOT_URL'));
+      const expiresAt = device.userEmulator.expires_at;
+      devices.push({...device.userEmulator.device, expires_at:  DateUtils.diffInDays(expiresAt, DateUtils.today())});
+    });
+    return { data: devices  };
   }
 
   /**
@@ -165,7 +173,7 @@ export class AccountsService {
    * @param userId - The ID of the user.
    * @returns The root admin account for the user.
    */
-  findRootAccount(userId: number): Promise<Account> {
+  findRootAccount(userId: string): Promise<Account> {
     return this.accountRepository.findOne({
       where: { user: { id: userId }, is_admin: true },
       relations: { user: true }
@@ -179,7 +187,7 @@ export class AccountsService {
    * @returns json {status: OK, message: Account Deleted}
    * @throws UnauthorizedException if the user is not authorized to delete the account.
    */
-  async remove(id: number, payload: JwtToken) {
+  async remove(id: string, payload: JwtToken): Promise<DamaruResponse> {
     const accountUser = await this.findUserByAccount(id);
     if (!accountUser) throw new NotFoundException('Account not found');
     if (
@@ -187,7 +195,7 @@ export class AccountsService {
       (accountUser?.user?.id === payload.sub && (payload.subRole === SubRoles.AndroidAdmin || id === payload.accountId))
     ) {
       await this.accountRepository.delete(id);
-      return { status: HttpStatus.OK, message: 'Account Deleted' };
+      return { message: 'Account Deleted' };
     } else {
       throw new UnauthorizedException('You cannot delete an account you do not own');
     }

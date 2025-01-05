@@ -5,6 +5,7 @@ import { CreateUserDto } from '../dtos/create.user.dto';
 import { Roles } from '../enums/roles';
 import { JwtAuthGuard } from '../../../core/guards/jwt.guard';
 import { SuperAdmin } from '../../../core/guards/super_admin.guard';
+import { DamaruResponse } from '../../../common/interfaces/DamaruResponse';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -20,7 +21,7 @@ export class UsersController {
    */
   @Get()
   @ApiConsumes('application/json', 'text/plain')
-  findAll() {
+  findAll(): Promise<DamaruResponse> {
     return this.userServices.findAll();
   }
 
@@ -30,7 +31,7 @@ export class UsersController {
     type: CreateUserDto,
     description: 'User Create'
   })
-  create(@Body() createUserDto: CreateUserDto) {
+  create(@Body() createUserDto: CreateUserDto): Promise<DamaruResponse> {
     return this.userServices.create({ ...createUserDto, role: createUserDto.role ?? Roles.AndroidUser });
   }
 
@@ -40,13 +41,13 @@ export class UsersController {
     type: CreateUserDto,
     description: 'User Update'
   })
-  update(@Param('id') id: number, @Body() updateUserDto: Partial<CreateUserDto>) {
+  update(@Param('id') id: string, @Body() updateUserDto: Partial<CreateUserDto>): Promise<DamaruResponse> {
     return this.userServices.update(id, updateUserDto);
   }
 
   @Delete(':id')
   @ApiConsumes('application/json', 'text/plain')
-  delete(@Param('id') id: number) {
+  delete(@Param('id') id: string): Promise<DamaruResponse> {
     return this.userServices.remove(id);
   }
 }

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ActivityLog } from '../entities/activity_log.entity';
 import { CreateActivityLogDto } from '../dtos/create.activity_log.dto';
+import { DamaruResponse } from '../../../common/interfaces/DamaruResponse';
 
 @Injectable()
 export class ActivityLogService {
@@ -11,29 +12,29 @@ export class ActivityLogService {
     private readonly activityLogRepository: Repository<ActivityLog>
   ) {}
 
-  async log(activityLog: CreateActivityLogDto) {
-    return this.activityLogRepository.insert({
+  async log(activityLog: CreateActivityLogDto): Promise<DamaruResponse> {
+    await this.activityLogRepository.insert({
       action: activityLog.action.toString(),
       device: { device_id: activityLog.device_id },
-      account: { id: activityLog.account_id },
-      user: { id: activityLog.user_id },
       metadata: activityLog.metadata
     });
+    return { message: 'Activity logged successfully' };
   }
 
-  update(id: number, log: Partial<ActivityLog>) {
-    return this.activityLogRepository.update(id, log);
+  async update(id: number, log: Partial<ActivityLog>): Promise<DamaruResponse> {
+    return { message: 'Activity log updated', data: await this.activityLogRepository.update(id, log) };
   }
 
-  findAll(): Promise<ActivityLog[]> {
-    return this.activityLogRepository.find();
+  async findAll(): Promise<DamaruResponse> {
+    return { data: await this.activityLogRepository.find() };
   }
 
-  findOne(id: number): Promise<ActivityLog | null> {
-    return this.activityLogRepository.findOneBy({ id });
+  async findOne(id: string): Promise<DamaruResponse> {
+    return { data: this.activityLogRepository.findOneBy({ id }) } ;
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: number): Promise<DamaruResponse> {
     await this.activityLogRepository.delete(id);
+    return { message: 'Activity log deleted' };
   }
 }

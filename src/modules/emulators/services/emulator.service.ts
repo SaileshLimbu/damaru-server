@@ -18,6 +18,8 @@ import { AccountStatus } from '../interfaces/account.status';
 import { AccountsService } from '../../accounts/services/account.service';
 import { AccountEmulatorsAssignDto } from '../dtos/account-emulators-assign.dto';
 import { Utils } from '../../../common/utils/utils';
+import { DamaruResponse } from '../../../common/interfaces/DamaruResponse';
+import { ExtendExpiryDto } from '../dtos/extend-expiry.dto';
 
 /**
  * EmulatorService is responsible for managing emulator-related operations,
@@ -44,7 +46,7 @@ export class EmulatorService {
    * @param userId - ID of the user performing the creation.
    * @returns A success message with HTTP status code.
    */
-  async create(emulator: EmulatorDto, userId: number) {
+  async create(emulator: EmulatorDto, userId: string): Promise<DamaruResponse> {
     const emulatorDetails = {
       ...emulator,
       state: EmulatorState.AVAILABLE,
@@ -52,7 +54,7 @@ export class EmulatorService {
     };
     this.logAction(Actions.CREATE_EMULATOR, emulatorDetails, userId);
     await this.emulatorRepository.insert(emulatorDetails);
-    return { status: HttpStatus.OK, message: 'New device has been added' };
+    return { message: 'New device has been added' };
   }
 
   /**
@@ -62,7 +64,7 @@ export class EmulatorService {
    * @returns The result of the update operation.
    */
   async update(id: string, emulator: Partial<EmulatorDto>) {
-    return this.emulatorRepository.update(id, emulator);
+    return { data: await this.emulatorRepository.update(id, emulator) };
   }
 
   /**
@@ -70,7 +72,7 @@ export class EmulatorService {
    * @param jwt - The JWT token containing the user's roles and permissions.
    * @returns A list of emulators with their details appropriately mapped.
    */
-  async findAll(jwt: JwtToken) {
+  async findAll(jwt: JwtToken): Promise<DamaruResponse> {
     let emulators: Array<Emulator>;
 
     if (jwt.role === Roles.SuperAdmin.toString()) {
@@ -94,7 +96,7 @@ export class EmulatorService {
       });
     }
 
-    return this.emulatorResponseMapper(emulators);
+    return { data: this.emulatorResponseMapper(emulators) };
   }
 
   /**
@@ -109,10 +111,11 @@ export class EmulatorService {
   /**
    * Deletes an emulator entity by its unique ID.
    * @param id - The ID of the emulator to delete.
-   * @returns void
+   * @returns DamaruResponse
    */
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<DamaruResponse> {
     await this.emulatorRepository.delete(id);
+    return { message: 'Emulator has been deleted' };
   }
 
   /**
@@ -176,7 +179,6 @@ export class EmulatorService {
   /**
    * Unassigns an emulator to specific accounts for a user.
    * @param emulatorAssignedDto - DTO containing the emulator assignment details.
-   * @param user - The JWT token of the user performing the assignment.
    * @returns void
    */
   async unassignEmulatorFromAccounts(emulatorAssignedDto: EmulatorAssignDto) {
@@ -242,6 +244,20 @@ export class EmulatorService {
     });
   }
 
+  async extend(emulatorExtendExpiry: ExtendExpiryDto) {
+    const exist = await this.userEmulatorRepository.findOne({
+      where: {
+        device: { device_id: emulatorExtendExpiry.device_id },
+        user: { id: emulatorExtendExpiry.user_id }
+      }
+    });
+    if (exist) {
+      await this.userEmulatorRepository.update(exist.id, {
+        expires_at: DateUtils.add(emulatorExtendExpiry.days, 'days', exist.expires_at)
+      });
+    }
+  }
+
   /**
    * Links an emulator to a user, marking it as registered and associating it with an account.
    * @param emulatorLinkDto - DTO containing emulator linking details.
@@ -277,7 +293,7 @@ export class EmulatorService {
    * @param user - The JWT token of the currently authenticated user.
    * @returns True if the user has permissions; otherwise false.
    */
-  private checkSuperAdminOrSelf(userId: number, user: JwtToken): boolean {
+  private checkSuperAdminOrSelf(userId: string, user: JwtToken): boolean {
     return user.role === Roles.SuperAdmin || userId === user.sub;
   }
 
@@ -288,7 +304,7 @@ export class EmulatorService {
    * @param userId - Optional ID of the user performing the action.
    * @returns A promise that resolves after logging the action.
    */
-  private logAction(action: Actions, metadata: object, userId?: number) {
+  private logAction(action: Actions, metadata: object, userId?: string) {
     console.log({ action, metadata, user_id: userId });
   }
 
@@ -355,16 +371,18 @@ export class EmulatorService {
     }
   }
 
-  async findLinkedDevices(deviceId: string) {
+  async findLinkedDevices(deviceId: string): Promise<DamaruResponse> {
     const accountEmulators = await this.accountEmulatorRepository.find({
       where: { userEmulator: { device: { device_id: deviceId } } },
       select: { account: { account_name: true, id: true, is_admin: true } },
       relations: { account: true }
     });
-    return accountEmulators
-      .filter((accountEmulator) => !accountEmulator.account.is_admin)
-      .map((accountEmulator) => {
-        return { id: accountEmulator.account.id, account_name: accountEmulator.account.account_name };
-      });
+    return {
+      data: accountEmulators
+        .filter((accountEmulator) => !accountEmulator.account.is_admin)
+        .map((accountEmulator) => {
+          return { id: accountEmulator.account.id, account_name: accountEmulator.account.account_name };
+        })
+    };
   }
 }

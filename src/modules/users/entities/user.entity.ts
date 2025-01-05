@@ -1,13 +1,12 @@
 import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { Account } from '../../accounts/entities/account.entity';
-import { ActivityLog } from '../../activity_logs/entities/activity_log.entity';
 import { Role } from './role.entity';
 import { UserEmulators } from '../../emulators/entities/user-emulators';
 
 @Entity()
 export class Users {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column({ unique: true })
   email: string;
@@ -27,12 +26,9 @@ export class Users {
   @ManyToOne(() => Role, (role) => role.id)
   role: Role;
 
-  @OneToMany(() => Account, (account) => account.user)
+  @OneToMany(() => Account, (account) => account.user, { onDelete: 'CASCADE' })
   accounts: Account[];
 
-  @OneToMany(() => ActivityLog, (activityLog) => activityLog.account)
-  activityLogs: ActivityLog[];
-
-  @OneToMany(() => UserEmulators, (emulator) => emulator.device)
+  @OneToMany(() => UserEmulators, (emulator) => emulator.user, { onDelete: 'SET NULL' })
   emulators: UserEmulators[];
 }

@@ -1,18 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsDate, IsNumber, IsOptional } from 'class-validator';
+import { IsArray, IsDate, IsOptional, IsString } from 'class-validator';
 
 export class AccountEmulatorsAssignDto {
   @ApiProperty()
-  @IsNumber()
-  accountId: number;
+  @IsString()
+  accountId: string;
 
   @ApiProperty()
   @IsArray()
   device_ids: Array<string>;
 
   @ApiProperty()
-  @IsNumber()
-  user_id: number;
+  @IsString()
+  user_id: string;
 
   @IsOptional()
   @IsDate()

@@ -4,6 +4,7 @@ import { Request } from 'express';
 import { ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { LoginDto } from '../dtos/login.dto';
 import { JwtAuthGuard } from '../../../core/guards/jwt.guard';
+import { DamaruResponse } from '../../../common/interfaces/DamaruResponse';
 
 @Controller('auth')
 export class AuthController {
@@ -15,7 +16,7 @@ export class AuthController {
     description: 'Login Dto'
   })
   @ApiConsumes('application/json', 'text/plain')
-  async login(@Body() loginDto: LoginDto) {
+  async login(@Body() loginDto: LoginDto): Promise<DamaruResponse> {
     return this.authService.login(loginDto);
   }
 
@@ -23,8 +24,8 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiConsumes('application/json', 'text/plain')
   @Get('check')
-  checkAuth(@Req() req: Request) {
+  checkAuth(@Req() req: Request): DamaruResponse {
     const user = req.user; // The JWT payload is attached to the `user` property
-    return { message: 'User is authenticated', user };
+    return { message: 'User is authenticated', data: { ...user } };
   }
 }

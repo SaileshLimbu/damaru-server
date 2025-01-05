@@ -7,7 +7,7 @@ import { Emulator } from "./modules/emulators/entities/emulator.entity";
 import { EmulatorConnections } from "./modules/emulators/entities/emulator-connections";
 import { ActivityLog } from "./modules/activity_logs/entities/activity_log.entity";
 import { Role } from "./modules/users/entities/role.entity";
-import { EncryptionEntity } from './modules/app/entities/encryption.entity';
+import { Encryption } from './modules/app/entities/encryption';
 import { ServeStaticModule, ServeStaticModuleOptions } from '@nestjs/serve-static';
 import { resolve } from 'path';
 import { AccountEmulators } from './modules/emulators/entities/account-emulators';
@@ -26,7 +26,7 @@ export const registerDatabaseModule = () =>
   TypeOrmModule.forRoot({
     type: 'sqlite',
     database: 'database.sqlite',
-    entities: [Users, Account, UserEmulators, Emulator, EmulatorConnections, ActivityLog, Role, EncryptionEntity, AccountEmulators],
+    entities: [Users, Account, UserEmulators, Emulator, EmulatorConnections, ActivityLog, Role, Encryption, AccountEmulators],
     synchronize: true
   });
 
