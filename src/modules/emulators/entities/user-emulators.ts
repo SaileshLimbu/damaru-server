@@ -8,10 +8,10 @@ export class UserEmulators {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Users, (user) => user.emulators)
+  @ManyToOne(() => Users, (user) => user.emulators,  { onDelete: 'CASCADE' })
   user: Users;
 
-  @ManyToOne(() => Emulator, (emulator) => emulator.userEmulators)
+  @ManyToOne(() => Emulator, (emulator) => emulator.userEmulators,  { onDelete: 'CASCADE' })
   device: Emulator;
 
   @Column()
@@ -23,6 +23,6 @@ export class UserEmulators {
   @Column({ type: 'date', nullable: true })
   unlinked_at?: Date;
 
-  @OneToMany(() => AccountEmulators, (accountEmulator) => accountEmulator.userEmulator,  { onDelete: 'CASCADE' })
+  @OneToMany(() => AccountEmulators, (accountEmulator) => accountEmulator.userEmulator)
   accountEmulator: AccountEmulators;
 }

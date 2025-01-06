@@ -23,12 +23,12 @@ export class Users {
   @UpdateDateColumn({ type: 'date' })
   updated_at: Date;
 
-  @ManyToOne(() => Role, (role) => role.id)
+  @ManyToOne(() => Role, (role) => role.id, { onDelete: 'CASCADE' })
   role: Role;
 
-  @OneToMany(() => Account, (account) => account.user, { onDelete: 'CASCADE' })
+  @OneToMany(() => Account, (account) => account.user)
   accounts: Account[];
 
-  @OneToMany(() => UserEmulators, (emulator) => emulator.user, { onDelete: 'CASCADE' })
+  @OneToMany(() => UserEmulators, (emulator) => emulator.user)
   emulators: UserEmulators[];
 }

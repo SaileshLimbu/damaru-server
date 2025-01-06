@@ -42,10 +42,10 @@ export class Emulator {
   @UpdateDateColumn({ type: 'date' })
   updated_at: Date;
 
-  @OneToMany(() => UserEmulators, (emulatorCode) => emulatorCode.device, { onDelete: 'CASCADE' })
+  @OneToMany(() => UserEmulators, (emulatorCode) => emulatorCode.device)
   userEmulators: UserEmulators[];
 
-  @OneToMany(() => EmulatorConnections, (connection) => connection.accountEmulators, { cascade: true, onDelete: 'CASCADE' })
+  @OneToMany(() => EmulatorConnections, (connection) => connection.accountEmulators)
   emulatorConnections: EmulatorConnections[];
 
   @Column({ nullable: true })

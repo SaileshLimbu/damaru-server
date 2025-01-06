@@ -9,14 +9,13 @@ REMOTE_DIR="/home/ubuntu/damaru-node"
 DIST_ZIP="dist.zip"
 DIST_DIR="dist"
 
-# Build the project
-echo "Building project..."
-npm run build
-
 # Remove any existing dist.zip
 echo "Removing old zip file..."
 rm -f $DIST_ZIP
 
+# Build the project
+echo "Building project..."
+npm run build
 # Zip the dist directory
 echo "Creating new zip file..."
 zip -r $DIST_ZIP $DIST_DIR

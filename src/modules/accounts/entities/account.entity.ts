@@ -32,9 +32,9 @@ export class Account {
   @Column({ type: 'date', nullable: true })
   last_login: Date;
 
-  @OneToMany(() => EmulatorConnections, (connection) => connection.accountEmulators, { onDelete: 'CASCADE' })
+  @OneToMany(() => EmulatorConnections, (connection) => connection.accountEmulators)
   emulatorConnections: EmulatorConnections[];
 
-  @OneToMany(() => AccountEmulators, (accountEmulator) => accountEmulator.account, { onDelete: 'CASCADE' })
+  @OneToMany(() => AccountEmulators, (accountEmulator) => accountEmulator.account)
   devices: AccountEmulators[];
 }

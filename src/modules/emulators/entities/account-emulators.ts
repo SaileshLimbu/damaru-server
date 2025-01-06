@@ -9,13 +9,13 @@ export class AccountEmulators {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Account, (account) => account.devices)
+  @ManyToOne(() => Account, (account) => account.devices,  { onDelete: 'CASCADE' })
   account: Account;
 
-  @ManyToOne(() => UserEmulators, (userEmulator) => userEmulator.accountEmulator)
+  @ManyToOne(() => UserEmulators, (userEmulator) => userEmulator.accountEmulator,  { onDelete: 'CASCADE' })
   userEmulator: UserEmulators;
 
-  @OneToMany(() => EmulatorConnections, (accountEmulatorConnection) => accountEmulatorConnection.accountEmulators,  { onDelete: 'CASCADE' })
+  @OneToMany(() => EmulatorConnections, (accountEmulatorConnection) => accountEmulatorConnection.accountEmulators)
   accountEmulatorConnections: EmulatorConnections[];
 
   @Column()
