@@ -34,14 +34,13 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
   @WebSocketServer()
   server: Server;
   private connections = new Map<string, Socket>();
-  private clientToSocket = new Map<string, string>();
 
   @UseGuards(WsJwtGuard, EmulatorAdmin)
   @SubscribeMessage('StartStreaming')
   async handleStartStreaming(@ConnectedSocket() client: Socket, @MessageBody() { deviceId }: { deviceId: string }) {
     console.log('Started', { message: `Streaming started: ${deviceId}` });
     if (deviceId) {
-      this.clientToSocket.set(deviceId, client.id);
+      this.connections.set(deviceId, client);
       await this.emulatorService.update(deviceId, { status: EmulatorStatus.online });
     }
   }
@@ -59,12 +58,12 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
       sdp: string;
     }
   ) {
-    const emulatorSocket: Socket = this.server.sockets.sockets.get(this.clientToSocket.get(deviceId));
+    const emulatorSocket: Socket = this.connections.get(deviceId);
     if (!emulatorSocket) {
       throw new WsException('Emulator not found');
     }
     const accountId: string = client.handshake['user'].accountId;
-    this.clientToSocket.set(accountId, client.id);
+    this.connections.set(accountId, client);
     const response = { sdp, clientId: accountId };
     emulatorSocket.emit('Offer', response);
   }
@@ -74,7 +73,7 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
   async handleAnswer(@MessageBody() { clientId, sdp }: { clientId: string; sdp: string }) {
     if (clientId) {
       await this.emulatorService.connectEmulator(clientId);
-      this.server.sockets.sockets.get(this.clientToSocket.get(clientId)).emit('Answer', { sdp });
+      this.connections.get(clientId).emit('Answer', { sdp });
     }
   }
 
@@ -95,7 +94,7 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
     }
   ) {
     const id = isEmulator ? clientId : deviceId;
-    this.server.sockets.sockets.get(this.clientToSocket.get(id)).emit('IceCandidate', {
+    this.connections.get(id).emit('IceCandidate', {
       iceCandidate,
       clientId,
       deviceId,
@@ -107,7 +106,7 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
   @SubscribeMessage('Disconnect')
   disconnect(@MessageBody() { clientId, deviceId }: { clientId: string; deviceId: string }) {
     console.log('disconnect', clientId, deviceId);
-    const socket = this.connections.get(deviceId);
+    const socket: Socket = this.connections.get(deviceId);
     socket.emit('Disconnect', { clientId });
   }
 
@@ -129,9 +128,9 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
   }
 
   async handleDisconnect(client: Socket) {
-    this.clientToSocket.forEach((value, key) => {
-      if (value === client.id) {
-        this.emulatorService.disconnectEmulator(key);
+    this.connections.forEach((socket, clientId) => {
+      if (socket.id === client.id) {
+        this.emulatorService.disconnectEmulator(clientId);
       }
     });
   }

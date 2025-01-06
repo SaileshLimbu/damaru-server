@@ -6,10 +6,7 @@ export class EmulatorConnections {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => AccountEmulators, (accountEmulators) => accountEmulators.accountEmulatorConnections, {
-    nullable: true,
-    onDelete: 'CASCADE'
-  })
+  @ManyToOne(() => AccountEmulators, (accountEmulators) => accountEmulators.accountEmulatorConnections)
   accountEmulators: AccountEmulators;
 
   @CreateDateColumn({ type: 'date' })

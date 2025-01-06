@@ -1,13 +1,9 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { Emulator } from '../../emulators/entities/emulator.entity';
+import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
 export class ActivityLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;
-
-  @ManyToOne(() => Emulator, (emulator) => emulator.activityLogs, { nullable: true, onDelete: 'NO ACTION' })
-  device: Emulator;
 
   @Column()
   action: string;

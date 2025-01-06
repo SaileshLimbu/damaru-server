@@ -2,7 +2,6 @@ import { Column, CreateDateColumn, Entity, OneToMany, PrimaryColumn, UpdateDateC
 import { UserEmulators } from './user-emulators';
 import { EmulatorStatus } from '../interfaces/emulator.status';
 import { EmulatorConnections } from './emulator-connections';
-import { ActivityLog } from '../../activity_logs/entities/activity_log.entity';
 import { EmulatorState } from '../interfaces/emulator.state';
 
 @Entity()
@@ -43,14 +42,11 @@ export class Emulator {
   @UpdateDateColumn({ type: 'date' })
   updated_at: Date;
 
-  @OneToMany(() => UserEmulators, (emulatorCode) => emulatorCode.device, { cascade: true, onDelete: 'CASCADE' })
+  @OneToMany(() => UserEmulators, (emulatorCode) => emulatorCode.device, { onDelete: 'CASCADE' })
   userEmulators: UserEmulators[];
 
   @OneToMany(() => EmulatorConnections, (connection) => connection.accountEmulators, { cascade: true, onDelete: 'CASCADE' })
   emulatorConnections: EmulatorConnections[];
-
-  @OneToMany(() => ActivityLog, (activityLog) => activityLog.device, { onDelete: 'SET NULL' })
-  activityLogs: ActivityLog[];
 
   @Column({ nullable: true })
   screenshot: string;

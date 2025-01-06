@@ -15,7 +15,6 @@ export class ActivityLogService {
   async log(activityLog: CreateActivityLogDto): Promise<DamaruResponse> {
     await this.activityLogRepository.insert({
       action: activityLog.action.toString(),
-      device: { device_id: activityLog.device_id },
       metadata: activityLog.metadata
     });
     return { message: 'Activity logged successfully' };

@@ -29,6 +29,6 @@ export class Users {
   @OneToMany(() => Account, (account) => account.user, { onDelete: 'CASCADE' })
   accounts: Account[];
 
-  @OneToMany(() => UserEmulators, (emulator) => emulator.user, { onDelete: 'SET NULL' })
+  @OneToMany(() => UserEmulators, (emulator) => emulator.user, { onDelete: 'CASCADE' })
   emulators: UserEmulators[];
 }
