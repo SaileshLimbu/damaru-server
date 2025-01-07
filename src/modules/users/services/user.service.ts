@@ -74,7 +74,7 @@ export class UsersService {
 
   async findAll(): Promise<DamaruResponse> {
     const users = await this.usersRepository.find({
-      relations: { accounts: true, emulators: true},
+      relations: { accounts: true, emulators: true, role: true},
       select: ['id', 'name', 'email']
     });
     return {
@@ -83,7 +83,9 @@ export class UsersService {
         name: user.name,
         email: user.email,
         accountsCount: user.accounts.length,
-        emulatorsCount: user.emulators.length
+        emulatorsCount: user.emulators.length,
+        role: user.role.name,
+        isSuperAdmin: user.role.name === Roles.SuperAdmin
       }))
     };
   }

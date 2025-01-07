@@ -377,14 +377,14 @@ export class EmulatorService {
   async findLinkedDevices(deviceId: string): Promise<DamaruResponse> {
     const accountEmulators = await this.accountEmulatorRepository.find({
       where: { userEmulator: { device: { device_id: deviceId } } },
-      select: { account: { account_name: true, id: true, is_admin: true } },
+      select: { account: { account_name: true, id: true, is_admin: true, pin: true } },
       relations: { account: true }
     });
     return {
       data: accountEmulators
         .filter((accountEmulator) => !accountEmulator.account.is_admin)
         .map((accountEmulator) => {
-          return { id: accountEmulator.account.id, account_name: accountEmulator.account.account_name };
+          return { id: accountEmulator.account.id, account_name: accountEmulator.account.account_name, pin: accountEmulator.account.pin };
         })
     };
   }
