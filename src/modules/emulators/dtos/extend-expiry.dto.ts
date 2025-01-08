@@ -4,11 +4,11 @@ import { IsNumber, IsString } from 'class-validator';
 export class ExtendExpiryDto {
   @ApiProperty()
   @IsString()
-  device_id: string;
+  deviceId: string;
 
   @ApiProperty()
   @IsString()
-  user_id: string;
+  userId: string;
 
   @ApiProperty()
   @IsNumber()

@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UploadedFi
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { EmulatorDto } from '../dtos/emulator.dto';
 import { EmulatorService } from '../services/emulator.service';
-import { EmulatorLinkDto } from '../dtos/emulator-link.dto';
+import { MultiDevicesLinkDto } from '../dtos/multi-devices-link.dto';
 import { JwtAuthGuard } from '../../../core/guards/jwt.guard';
 import { AuthUser } from '../../../common/interfaces/AuthUser';
 import { EmulatorUsers } from '../../../core/guards/emulator_user.guard';
@@ -11,10 +11,10 @@ import { SuperAdmin } from '../../../core/guards/super_admin.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ExcludeInterceptor } from '../../../core/middlewares/ExcludeEncryptionInterceptor';
 import { AndroidAdmin } from '../../../core/guards/android_admin.guard';
-import { EmulatorAssignDto } from '../dtos/emulator-assign.dto';
-import { AccountEmulatorsAssignDto } from '../dtos/account-emulators-assign.dto';
 import { DamaruResponse } from '../../../common/interfaces/DamaruResponse';
 import { ExtendExpiryDto } from '../dtos/extend-expiry.dto';
+import { MultiAccountsLinkDto } from '../dtos/multi-accounts.link.dto';
+import { MultiDevicesAccountLinkDto } from '../dtos/multi-devices-account-link.dto';
 
 @ApiTags('Emulators')
 @ApiBearerAuth()
@@ -93,16 +93,30 @@ export class EmulatorController {
   }
 
   @ApiBody({
-    type: EmulatorLinkDto,
+    type: MultiDevicesLinkDto,
     description: 'Emulator link dto'
   })
   @UseGuards(SuperAdmin)
   @ApiConsumes('application/json', 'text/plain')
-  @Post('link-emulator')
-  async linkEmulator(@Body() emulatorLinkDto: EmulatorLinkDto): Promise<DamaruResponse> {
+  @Post('link-emulators')
+  async linkEmulator(@Body() emulatorLinkDto: MultiDevicesLinkDto): Promise<DamaruResponse> {
     await this.emulatorService.linkEmulator(emulatorLinkDto);
     return {
-      message: `Device with id:${emulatorLinkDto.device_id} linked with userId: ${emulatorLinkDto.user_id}`
+      message: `Device linked with userId: ${emulatorLinkDto.userId}`
+    };
+  }
+
+  @ApiBody({
+    type: MultiDevicesLinkDto,
+    description: 'Emulator link dto'
+  })
+  @UseGuards(SuperAdmin)
+  @ApiConsumes('application/json', 'text/plain')
+  @Post('unlink-emulators')
+  async unlinkEmulator(@Body() emulatorLinkDto: MultiDevicesLinkDto): Promise<DamaruResponse> {
+    await this.emulatorService.unlinkEmulator(emulatorLinkDto);
+    return {
+      message: `Device unlinked with userId: ${emulatorLinkDto.userId}`
     };
   }
 
@@ -121,13 +135,13 @@ export class EmulatorController {
   }
 
   @ApiBody({
-    type: EmulatorAssignDto,
+    type: MultiAccountsLinkDto,
     description: 'Assign emulator to multiple accounts dto'
   })
   @UseGuards(AndroidAdmin)
   @ApiConsumes('application/json', 'text/plain')
   @Post('assign-multi-accounts')
-  async assignEmulator(@Body() emulatorLinkDto: EmulatorAssignDto, @Req() authUser: AuthUser): Promise<DamaruResponse> {
+  async assignEmulator(@Body() emulatorLinkDto: MultiAccountsLinkDto, @Req() authUser: AuthUser): Promise<DamaruResponse> {
     await this.emulatorService.assignEmulator(emulatorLinkDto, authUser.user);
     return {
       message: 'Device has been assigned to multiple accounts'
@@ -135,13 +149,13 @@ export class EmulatorController {
   }
 
   @ApiBody({
-    type: AccountEmulatorsAssignDto,
+    type: MultiDevicesAccountLinkDto,
     description: 'Assign emulators to one account dto'
   })
   @UseGuards(AndroidAdmin)
   @ApiConsumes('application/json', 'text/plain')
   @Post('assign-multi-emulators')
-  async assignEmulatorsToAccount(@Body() emulatorLinkDto: AccountEmulatorsAssignDto, @Req() authUser: AuthUser): Promise<DamaruResponse> {
+  async assignEmulatorsToAccount(@Body() emulatorLinkDto: MultiDevicesAccountLinkDto, @Req() authUser: AuthUser): Promise<DamaruResponse> {
     await this.emulatorService.assignEmulatorsToAccount(emulatorLinkDto, authUser.user);
     return {
       message: 'Devices have been assigned to an account'
@@ -149,13 +163,16 @@ export class EmulatorController {
   }
 
   @ApiBody({
-    type: AccountEmulatorsAssignDto,
+    type: MultiDevicesAccountLinkDto,
     description: 'Unassign emulators to one account dto'
   })
   @UseGuards(AndroidAdmin)
   @ApiConsumes('application/json', 'text/plain')
   @Post('unassign-multi-emulators')
-  async unAssignEmulatorsToAccount(@Body() emulatorLinkDto: AccountEmulatorsAssignDto, @Req() authUser: AuthUser): Promise<DamaruResponse> {
+  async unAssignEmulatorsToAccount(
+    @Body() emulatorLinkDto: MultiDevicesAccountLinkDto,
+    @Req() authUser: AuthUser
+  ): Promise<DamaruResponse> {
     await this.emulatorService.unassignEmulatorsToAccount(emulatorLinkDto, authUser.user);
     return {
       message: `Devices have been unassigned to an account`
@@ -163,13 +180,13 @@ export class EmulatorController {
   }
 
   @ApiBody({
-    type: EmulatorAssignDto,
+    type: MultiAccountsLinkDto,
     description: 'Unassign emulator from multiple account dto'
   })
   @UseGuards(AndroidAdmin)
   @ApiConsumes('application/json', 'text/plain')
   @Post('unassign-multi-accounts')
-  async unAssignEmulatorFromAccounts(@Body() emulatorLinkDto: EmulatorAssignDto): Promise<DamaruResponse> {
+  async unAssignEmulatorFromAccounts(@Body() emulatorLinkDto: MultiAccountsLinkDto): Promise<DamaruResponse> {
     await this.emulatorService.unassignEmulatorFromAccounts(emulatorLinkDto);
     return {
       message: `Device have been unassigned from accounts`

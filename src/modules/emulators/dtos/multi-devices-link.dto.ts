@@ -1,18 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsDate, IsOptional, IsString } from 'class-validator';
+import { MultiDevices } from '../interfaces/multi-devices';
 
-export class AccountEmulatorsAssignDto {
-  @ApiProperty()
-  @IsString()
-  accountId: string;
-
+export class MultiDevicesLinkDto implements MultiDevices {
   @ApiProperty()
   @IsArray()
-  device_ids: Array<string>;
+  deviceIds: Array<string>;
 
   @ApiProperty()
   @IsString()
-  user_id: string;
+  userId: string;
 
   @IsOptional()
   @IsDate()

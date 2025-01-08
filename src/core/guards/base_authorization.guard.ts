@@ -34,7 +34,6 @@ export abstract class BaseAuthorizationGuard implements CanActivate {
   }
 
   protected authorized(type: string, jwtPayload: JwtToken) {
-    console.log('Checking Authorization for payload:', jwtPayload);
     const isAuthorized = jwtPayload.role == Roles.SuperAdmin.toString() || (jwtPayload.role === this.role && jwtPayload.subRole == this.subRole);
     if(isAuthorized) {
       return true;

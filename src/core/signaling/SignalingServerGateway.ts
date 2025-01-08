@@ -65,7 +65,7 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
     const accountId: string = client.handshake['user'].accountId;
     this.connections.set(accountId, client);
     const response = { sdp, clientId: accountId };
-    emulatorSocket.emit('Offer', response);
+    emulatorSocket?.emit('Offer', response);
   }
 
   @UseGuards(WsJwtGuard, EmulatorAdmin)
@@ -73,7 +73,7 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
   async handleAnswer(@MessageBody() { clientId, sdp }: { clientId: string; sdp: string }) {
     if (clientId) {
       await this.emulatorService.connectEmulator(clientId);
-      this.connections.get(clientId).emit('Answer', { sdp });
+      this.connections.get(clientId)?.emit('Answer', { sdp });
     }
   }
 
@@ -94,7 +94,7 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
     }
   ) {
     const id = isEmulator ? clientId : deviceId;
-    this.connections.get(id).emit('IceCandidate', {
+    this.connections.get(id)?.emit('IceCandidate', {
       iceCandidate,
       clientId,
       deviceId,
@@ -107,7 +107,7 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
   disconnect(@MessageBody() { clientId, deviceId }: { clientId: string; deviceId: string }) {
     console.log('disconnect', clientId, deviceId);
     const socket: Socket = this.connections.get(deviceId);
-    socket.emit('Disconnect', { clientId });
+    socket?.emit('Disconnect', { clientId });
   }
 
   afterInit(server: Server): any {
@@ -115,7 +115,8 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
       try {
         let auth_token = socket.handshake.headers.authorization;
         auth_token = auth_token.split(' ')[1];
-        this.jwtService.verify(auth_token);
+        const user = this.jwtService.verify(auth_token);
+        console.log(user)
         next();
       } catch (e) {
         next(new WsException('Unauthorized'));

@@ -147,9 +147,9 @@ export class AccountsService {
    * @param token jwt token details of the requesting user
    * @returns The account entity or null if not found.
    */
-  async findOne(id: string, token: JwtToken): Promise<DamaruResponse>  {
+  async findOne(id: string, token: JwtToken): Promise<DamaruResponse> {
     const accountDetails = await this.accountRepository.findOne({
-      where: { id: id },
+      where: { id: id},
       relations: { user: true, devices: { userEmulator: { device: true } } }
     });
 
@@ -158,14 +158,13 @@ export class AccountsService {
       throw new UnauthorizedException('You are not authorized to view this account');
     const devices = [];
 
-    accountDetails.devices.map((device) => {
-
+    accountDetails.devices.filter((device)=> !device.userEmulator.unlinked_at).map((device) => {
       device.userEmulator.device.screenshot =
         device.userEmulator.device.screenshot ?? Utils.getDefaultScreenShot(this.configService.get('SCREENSHOT_URL'));
       const expiresAt = device.userEmulator.expires_at;
-      devices.push({...device.userEmulator.device, expires_at:  DateUtils.diffInDays(expiresAt, DateUtils.today())});
+      devices.push({ ...device.userEmulator.device, expires_at: DateUtils.diffInDays(expiresAt, DateUtils.today()) });
     });
-    return { data: devices  };
+    return { data: devices };
   }
 
   /**

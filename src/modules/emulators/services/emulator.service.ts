@@ -6,21 +6,21 @@ import { EmulatorDto } from '../dtos/emulator.dto';
 import { EmulatorStatus } from '../interfaces/emulator.status';
 import { UserEmulators } from '../entities/user-emulators';
 import { DateUtils } from '../../../common/utils/date.utils';
-import { EmulatorLinkDto } from '../dtos/emulator-link.dto';
+import { MultiDevicesLinkDto } from '../dtos/multi-devices-link.dto';
 import { Actions } from '../../activity_logs/enums/Actions';
 import { JwtToken } from '../../auth/interfaces/jwt_token';
 import { Roles, SubRoles } from '../../users/enums/roles';
 import { ConfigService } from '@nestjs/config';
 import { EmulatorState } from '../interfaces/emulator.state';
-import { EmulatorAssignDto } from '../dtos/emulator-assign.dto';
 import { AccountEmulators } from '../entities/account-emulators';
 import { AccountStatus } from '../interfaces/account.status';
 import { AccountsService } from '../../accounts/services/account.service';
-import { AccountEmulatorsAssignDto } from '../dtos/account-emulators-assign.dto';
 import { Utils } from '../../../common/utils/utils';
 import { DamaruResponse } from '../../../common/interfaces/DamaruResponse';
 import { ExtendExpiryDto } from '../dtos/extend-expiry.dto';
 import { EmulatorConnections } from '../entities/emulator-connections';
+import { MultiAccountsLinkDto } from '../dtos/multi-accounts.link.dto';
+import { MultiDevicesAccountLinkDto } from '../dtos/multi-devices-account-link.dto';
 
 /**
  * EmulatorService is responsible for managing emulator-related operations,
@@ -50,6 +50,10 @@ export class EmulatorService {
    * @returns A success message with HTTP status code.
    */
   async create(emulator: EmulatorDto, userId: string): Promise<DamaruResponse> {
+    const exist = await this.emulatorRepository.findOne({ where: { device_id: emulator.device_id } });
+    if (exist) {
+      return { message: 'Device already exist' };
+    }
     const emulatorDetails = {
       ...emulator,
       state: EmulatorState.AVAILABLE,
@@ -84,7 +88,7 @@ export class EmulatorService {
       });
     } else if (jwt.role === Roles.AndroidUser && jwt.subRole === SubRoles.AndroidAdmin) {
       emulators = await this.emulatorRepository.find({
-        where: { userEmulators: { user: { id: jwt.sub } }, state: EmulatorState.REGISTERED },
+        where: { userEmulators: { user: { id: jwt.sub }, unlinked_at: IsNull() }, state: EmulatorState.REGISTERED },
         relations: { userEmulators: { user: true } }
       });
     } else {
@@ -92,6 +96,7 @@ export class EmulatorService {
         where: {
           userEmulators: {
             user: { id: jwt.sub },
+            unlinked_at: IsNull(),
             accountEmulator: { account: { id: jwt.accountId } }
           }
         },
@@ -127,11 +132,11 @@ export class EmulatorService {
    * @param user - The JWT token of the user performing the assignment.
    * @returns void
    */
-  async assignEmulatorsToAccount(emulatorAssignedDto: AccountEmulatorsAssignDto, user: JwtToken) {
-    if (this.checkSuperAdminOrSelf(emulatorAssignedDto.user_id, user)) {
-      for (const deviceId of emulatorAssignedDto.device_ids) {
+  async assignEmulatorsToAccount(emulatorAssignedDto: MultiDevicesAccountLinkDto, user: JwtToken) {
+    if (this.checkSuperAdminOrSelf(emulatorAssignedDto.userId, user)) {
+      for (const deviceId of emulatorAssignedDto.deviceIds) {
         const userEmulator = await this.userEmulatorRepository.findOne({
-          where: { device: { device_id: deviceId }, user: { id: emulatorAssignedDto.user_id } },
+          where: { device: { device_id: deviceId }, user: { id: emulatorAssignedDto.userId } },
           select: { id: true }
         } as FindOneOptions<UserEmulators>);
         if (userEmulator) {
@@ -158,11 +163,11 @@ export class EmulatorService {
    * @param user - The JWT token of the user performing the assignment.
    * @returns void
    */
-  async unassignEmulatorsToAccount(emulatorAssignedDto: AccountEmulatorsAssignDto, user: JwtToken) {
-    if (this.checkSuperAdminOrSelf(emulatorAssignedDto.user_id, user)) {
-      for (const deviceId of emulatorAssignedDto.device_ids) {
+  async unassignEmulatorsToAccount(emulatorAssignedDto: MultiDevicesAccountLinkDto, user: JwtToken) {
+    if (this.checkSuperAdminOrSelf(emulatorAssignedDto.userId, user)) {
+      for (const deviceId of emulatorAssignedDto.deviceIds) {
         const userEmulator = await this.userEmulatorRepository.findOne({
-          where: { device: { device_id: deviceId }, user: { id: emulatorAssignedDto.user_id } },
+          where: { device: { device_id: deviceId }, user: { id: emulatorAssignedDto.userId } },
           select: { id: true }
         } as FindOneOptions<UserEmulators>);
         if (userEmulator) {
@@ -184,9 +189,9 @@ export class EmulatorService {
    * @param emulatorAssignedDto - DTO containing the emulator assignment details.
    * @returns void
    */
-  async unassignEmulatorFromAccounts(emulatorAssignedDto: EmulatorAssignDto) {
+  async unassignEmulatorFromAccounts(emulatorAssignedDto: MultiAccountsLinkDto) {
     const userEmulator = await this.userEmulatorRepository.findOne({
-      where: { device: { device_id: emulatorAssignedDto.device_id }, user: { id: emulatorAssignedDto.user_id } },
+      where: { device: { device_id: emulatorAssignedDto.deviceId }, user: { id: emulatorAssignedDto.userId } },
       select: { id: true }
     });
     if (userEmulator) {
@@ -210,10 +215,10 @@ export class EmulatorService {
    * @param user - The JWT token of the user performing the assignment.
    * @returns void
    */
-  async assignEmulator(emulatorAssignedDto: EmulatorAssignDto, user: JwtToken) {
-    if (this.checkSuperAdminOrSelf(emulatorAssignedDto.user_id, user)) {
+  async assignEmulator(emulatorAssignedDto: MultiAccountsLinkDto, user: JwtToken) {
+    if (this.checkSuperAdminOrSelf(emulatorAssignedDto.userId, user)) {
       const userEmulator = await this.userEmulatorRepository.findOne({
-        where: { device: { device_id: emulatorAssignedDto.device_id }, user: { id: emulatorAssignedDto.user_id } },
+        where: { device: { device_id: emulatorAssignedDto.deviceId }, user: { id: emulatorAssignedDto.userId } },
         select: { id: true }
       });
       if (userEmulator) {
@@ -250,8 +255,8 @@ export class EmulatorService {
   async extend(emulatorExtendExpiry: ExtendExpiryDto) {
     const exist = await this.userEmulatorRepository.findOne({
       where: {
-        device: { device_id: emulatorExtendExpiry.device_id },
-        user: { id: emulatorExtendExpiry.user_id }
+        device: { device_id: emulatorExtendExpiry.deviceId },
+        user: { id: emulatorExtendExpiry.userId }
       }
     });
     if (exist) {
@@ -261,32 +266,50 @@ export class EmulatorService {
     }
   }
 
+  async unlinkEmulator(emulatorLinkDto: MultiDevicesLinkDto) {
+    for (const device_id of emulatorLinkDto.deviceIds) {
+      const linkedEmulator = await this.userEmulatorRepository.findOne({
+        where: {
+          user: { id: emulatorLinkDto.userId },
+          device: { device_id }
+        }
+      });
+      if (linkedEmulator) {
+        await this.userEmulatorRepository.update(linkedEmulator.id, {
+          unlinked_at: DateUtils.today()
+        });
+        await this.emulatorRepository.update(device_id, { state: EmulatorState.AVAILABLE })
+      }
+    }
+  }
+
   /**
    * Links an emulator to a user, marking it as registered and associating it with an account.
    * @param emulatorLinkDto - DTO containing emulator linking details.
    * @returns The ID of the newly linked emulator.
    * @throws HttpException if the device is already linked.
    */
-  async linkEmulator(emulatorLinkDto: EmulatorLinkDto) {
-    const alreadyLinked = await this.findEmulatorByDeviceId(emulatorLinkDto.device_id, EmulatorState.REGISTERED);
-    if (!alreadyLinked) {
-      const newLink = await this.userEmulatorRepository.insert({
-        user: { id: emulatorLinkDto.user_id },
-        device: { device_id: emulatorLinkDto.device_id },
-        expires_at: DateUtils.add(30, 'd'),
-        linked_at: DateUtils.today(),
-        unlinked_at: null
-      });
-      const adminAccount = await this.accountService.findRootAccount(emulatorLinkDto.user_id);
-      await this.accountEmulatorRepository.insert({
-        userEmulator: newLink.identifiers[0]?.id,
-        status: AccountStatus.ACTIVE,
-        account: { id: adminAccount.id }
-      });
-      await this.emulatorRepository.update(emulatorLinkDto.device_id, { state: EmulatorState.REGISTERED });
-      return newLink?.identifiers[0]?.id as number;
-    } else {
-      throw new HttpException('This device has already been linked', HttpStatus.NOT_ACCEPTABLE);
+  async linkEmulator(emulatorLinkDto: MultiDevicesLinkDto) {
+    for (const device_id of emulatorLinkDto.deviceIds) {
+      const alreadyLinked = await this.findEmulatorByDeviceId(device_id, EmulatorState.REGISTERED);
+      if (!alreadyLinked) {
+        const newLink = await this.userEmulatorRepository.insert({
+          user: { id: emulatorLinkDto.userId },
+          device: { device_id: device_id },
+          expires_at: DateUtils.add(this.configService.get('DEFAULT_DAYS') || 30, 'd'),
+          linked_at: DateUtils.today(),
+          unlinked_at: null
+        });
+        const adminAccount = await this.accountService.findRootAccount(emulatorLinkDto.userId);
+        await this.accountEmulatorRepository.insert({
+          userEmulator: newLink.identifiers[0]?.id,
+          status: AccountStatus.ACTIVE,
+          account: { id: adminAccount.id }
+        });
+        await this.emulatorRepository.update(device_id, { state: EmulatorState.REGISTERED });
+      } else {
+        throw new HttpException('This device has already been linked', HttpStatus.NOT_ACCEPTABLE);
+      }
     }
   }
 
@@ -376,7 +399,7 @@ export class EmulatorService {
 
   async findLinkedDevices(deviceId: string): Promise<DamaruResponse> {
     const accountEmulators = await this.accountEmulatorRepository.find({
-      where: { userEmulator: { device: { device_id: deviceId } } },
+      where: { userEmulator: { device: { device_id: deviceId }, unlinked_at: IsNull()} },
       select: { account: { account_name: true, id: true, is_admin: true, pin: true } },
       relations: { account: true }
     });
@@ -384,7 +407,11 @@ export class EmulatorService {
       data: accountEmulators
         .filter((accountEmulator) => !accountEmulator.account.is_admin)
         .map((accountEmulator) => {
-          return { id: accountEmulator.account.id, account_name: accountEmulator.account.account_name, pin: accountEmulator.account.pin };
+          return {
+            id: accountEmulator.account.id,
+            account_name: accountEmulator.account.account_name,
+            pin: accountEmulator.account.pin
+          };
         })
     };
   }
