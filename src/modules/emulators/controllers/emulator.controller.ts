@@ -134,6 +134,13 @@ export class EmulatorController {
     };
   }
 
+  @UseGuards(SuperAdmin)
+  @ApiConsumes('application/json', 'text/plain')
+  @Get('connection-log')
+  async connectionLog(@Query('accountId') accountId: string, @Query('deviceId') deviceId: string): Promise<DamaruResponse> {
+    return await this.emulatorService.connectionLog(accountId, deviceId);
+  }
+
   @ApiBody({
     type: MultiAccountsLinkDto,
     description: 'Assign emulator to multiple accounts dto'

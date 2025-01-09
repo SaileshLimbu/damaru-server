@@ -1,5 +1,5 @@
 import * as moment from 'moment';
-import { DurationInputArg2 } from 'moment';
+import { DurationInputArg2, unitOfTime } from 'moment';
 
 export class DateUtils {
   static readonly today = () => moment().toDate();
@@ -8,7 +8,11 @@ export class DateUtils {
     return moment(date).add(value, unit).toDate();
   }
 
-  static diffInDays(date1: Date, date2?: Date): number {
-    return moment(date1).diff(moment(date2), 'days');
+  static diffInDays(date1: Date, date2?: Date, units: unitOfTime.Diff ='days'): number {
+    return moment(date1).diff(moment(date2), units);
+  }
+
+  static format(format: string, date?: Date){
+    return moment(date).format(format)
   }
 }

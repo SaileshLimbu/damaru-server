@@ -16,20 +16,20 @@
 <pre id='log'></pre>
 
 <script>
-  const androidEmulator = 'SamsungGalaxyS25'; // Unique ID for the emulator
+  const androidEmulator = '1'; // Unique ID for the emulator
   const signalingServer = 'ws://localhost:3000/signaling'; // Socket.IO server
   const socketOptions = {
     transportOptions: {
       polling: {
         extraHeaders: {
-          Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4MTljNDhmNi1iZDFkLTRkNzctYmY1ZS1mOTdiNDgzZTZkNzQiLCJlbWFpbCI6ImVtdWxhdG9yQWRtaW5AZGFtYXJ1LmNvbSIsInJvbGUiOiJFbXVsYXRvckFkbWluIiwiaWF0IjoxNzM2MTI3MTc2LCJleHAiOjE3Njc2NjMxNzZ9.bZITC-EL54IeoaFBClcz0oU7oyzCpYGRzVF_JI4XzFo'
+          Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzIiwiZW1haWwiOiJlbXVsYXRvckFkbWluQGRhbWFydS5jb20iLCJyb2xlIjoiRW11bGF0b3JBZG1pbiIsImlhdCI6MTczNjM4NjE2NSwiZXhwIjoxNzY3OTIyMTY1fQ.qP3p1YVEae_Xz75xELWSUItB12IIzIuSpd6UfR7-cRc'
         }
       }
     }
   };
   const socket = io(signalingServer, socketOptions); // Connect to namespace
   // const localVideoEl = document.querySelector('#local-video');
-
+const connections = []
   // A function to execute the ADB command
 
   let localStream; //a var to hold the local video stream
@@ -75,11 +75,12 @@
       //we can pass a config object, and that config object can contain stun servers
       //which will fetch us ICE candidates
       peerConnection = await new RTCPeerConnection(peerConfiguration)
+      connections.push(peerConnection)
       remoteStream = new MediaStream()
 
       localStream.getVideoTracks().forEach(track=>{
         console.log("Adding track to PeerConnection:", track);
-        //add localtracks so that they can be sent once the connection is established
+        //add local tracks so that they can be sent once the connection is established
         peerConnection.addTrack(track,localStream);
       })
 
@@ -95,6 +96,7 @@
           socket.emit('IceCandidate',{
             iceCandidate: e.candidate,
             clientId,
+            deviceId: androidEmulator,
             isEmulator: true
           })
         }
@@ -140,6 +142,7 @@
     //
     // // Send the answer back to the server
     socket.emit('Answer', { clientId, sdp: answer.sdp });
+    console.log({ connections })
     console.log(`Sent answer to client: ${clientId}`);
   });
 

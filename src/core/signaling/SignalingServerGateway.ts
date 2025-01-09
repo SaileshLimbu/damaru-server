@@ -72,7 +72,6 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
   @SubscribeMessage('Answer')
   async handleAnswer(@MessageBody() { clientId, sdp }: { clientId: string; sdp: string }) {
     if (clientId) {
-      await this.emulatorService.connectEmulator(clientId);
       this.connections.get(clientId)?.emit('Answer', { sdp });
     }
   }
@@ -110,13 +109,19 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
     socket?.emit('Disconnect', { clientId });
   }
 
+  @UseGuards(WsJwtGuard, EmulatorUsers)
+  @SubscribeMessage('Connect')
+  async connect(@MessageBody() { clientId, deviceId }: { clientId: string; deviceId: string }) {
+    await this.emulatorService.connectEmulator(clientId, deviceId);
+  }
+
   afterInit(server: Server): any {
     server.use((socket: Socket, next) => {
       try {
         let auth_token = socket.handshake.headers.authorization;
         auth_token = auth_token.split(' ')[1];
         const user = this.jwtService.verify(auth_token);
-        console.log(user)
+        console.log(user);
         next();
       } catch (e) {
         next(new WsException('Unauthorized'));

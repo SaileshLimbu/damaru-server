@@ -20,14 +20,14 @@
 <script>
   const remoteVideoEl = document.querySelector('#remote-video');
 
-  const connectionId = "SamsungGalaxyS25"; // ID of the emulator to connect to
-  const androidEmulator = 'SamsungGalaxyS25'; // Unique ID for the emulator
+  const connectionId = "2574038a-5f7e-4126-a0a0-255126c84b29"; // ID of the emulator to connect to
+  const androidEmulator = '1'; // Unique ID for the emulator
   const signalingServer = 'ws://localhost:3000/signaling'; // Socket.IO server
   const socketOptions = {
     transportOptions: {
       polling: {
         extraHeaders: {
-          Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NWE3Y2EyMC1hYjQwLTRjYzctYTIyYi1hOTEwNTkwNTEwNTEiLCJhY2NvdW50TmFtZSI6IkFuZHJvaWQgQWRtaW4iLCJlbWFpbCI6ImFuZHJvaWRhZG1pbkBkYW1hcnUuY29tIiwicm9sZSI6IkFuZHJvaWRVc2VyIiwiYWNjb3VudElkIjoiYTRmY2JhZDItMmMwNy00NTU5LTk4ZjMtMTBhMmZlNmIxY2FhIiwic3ViUm9sZSI6IkFuZHJvaWRBZG1pbiIsImlhdCI6MTczNjEyNzU5OSwiZXhwIjoxNzY3NjYzNTk5fQ.PpqliBaPEfjND66BBCrhxq3-yQMcwIgikq5wiJfPrgs',
+          Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzYWJkZTBmMy00NThjLTRjZGEtYmZhMy05MzdhYTAzMjgxZDMiLCJhY2NvdW50TmFtZSI6IkRpcGVzaCIsImVtYWlsIjoiZHBlc21kcjIwQGdtYWlsLmNvbSIsInJvbGUiOiJBbmRyb2lkVXNlciIsImFjY291bnRJZCI6IjI1NzQwMzhhLTVmN2UtNDEyNi1hMGEwLTI1NTEyNmM4NGIyOSIsInN1YlJvbGUiOiJBbmRyb2lkQWRtaW4iLCJpYXQiOjE3MzYzODYzMDYsImV4cCI6MTc2NzkyMjMwNn0.i0h0S7Ow_fhmDLbBRdu1TP15kI_p_ZcDZqmtwbLpIVk',
         }
       }
     }
@@ -90,7 +90,7 @@
       peerConnection.addEventListener('icecandidate', e => {
         if (e.candidate) {
           socket.emit('IceCandidate', {
-            iceCandidate: e.candidate, clientId: androidEmulator, isEmulator: false
+            iceCandidate: e.candidate, clientId: connectionId, isEmulator: false, deviceId: androidEmulator
           });
         }
       });
@@ -142,6 +142,7 @@
   socket.on('Answer', async (sdp) => {
     console.log("answer sdp", sdp);
     await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: sdp.sdp }));
+    socket.emit('Connect', { clientId: connectionId, deviceId: androidEmulator})
   });
 
   socket.on("disconnect", () => log("Socket.IO connection closed."));

@@ -266,6 +266,41 @@ export class EmulatorService {
     }
   }
 
+  connectedTemplate(deviceName: string, connectedDate: Date, disConnectedDate?: Date): Array<string> {
+    const template = [];
+    template.push(`<b> Connected </b> to emulator <b> ${deviceName} </b> at <i> ${DateUtils.format('MMM D, YYYY h:mmA',connectedDate)} </i>`);
+    if (disConnectedDate) {
+      template.push(
+        `<b> Disconnected </b> from emulator <b> ${deviceName} </b> at <i> ${DateUtils.format('MMM D, YYYY h:mmA', disConnectedDate)} </i>( <span class="highlight"> ${DateUtils.diffInDays(disConnectedDate, connectedDate, 's')}s </span>)`
+      );
+    } else {
+      template.push(`<b> Still Connected</b>`);
+    }
+    return template;
+  }
+
+  async connectionLog(accountId: string, deviceId: string): Promise<DamaruResponse> {
+    const emulatorConnections = await this.emulatorConnectionsRepository.find({
+      where: {
+        accountEmulators: {
+          account: { id: accountId },
+          userEmulator: { device: { device_id: deviceId } }
+        }
+      },
+      relations: { accountEmulators: { userEmulator: { device: true } } }
+    });
+    const data: Array<string> = [];
+    emulatorConnections.map((emulatorConnection) => {
+      const templates = this.connectedTemplate(
+        emulatorConnection.accountEmulators.userEmulator.device.device_name,
+        emulatorConnection.connected_at,
+        emulatorConnection.disconnected_at
+      );
+      data.push(...templates);
+    });
+    return { data };
+  }
+
   async unlinkEmulator(emulatorLinkDto: MultiDevicesLinkDto) {
     for (const device_id of emulatorLinkDto.deviceIds) {
       const linkedEmulator = await this.userEmulatorRepository.findOne({
@@ -278,7 +313,8 @@ export class EmulatorService {
         await this.userEmulatorRepository.update(linkedEmulator.id, {
           unlinked_at: DateUtils.today()
         });
-        await this.emulatorRepository.update(device_id, { state: EmulatorState.AVAILABLE })
+        await this.accountEmulatorRepository.delete({ userEmulator: { id: linkedEmulator.id } });
+        await this.emulatorRepository.update(device_id, { state: EmulatorState.AVAILABLE });
       }
     }
   }
@@ -399,7 +435,7 @@ export class EmulatorService {
 
   async findLinkedDevices(deviceId: string): Promise<DamaruResponse> {
     const accountEmulators = await this.accountEmulatorRepository.find({
-      where: { userEmulator: { device: { device_id: deviceId }, unlinked_at: IsNull()} },
+      where: { userEmulator: { device: { device_id: deviceId }, unlinked_at: IsNull() } },
       select: { account: { account_name: true, id: true, is_admin: true, pin: true } },
       relations: { account: true }
     });
@@ -416,9 +452,16 @@ export class EmulatorService {
     };
   }
 
-  async connectEmulator(clientId: string) {
+  async connectEmulator(clientId: string, deviceId: string) {
+    const accountEmulatorId = await this.accountEmulatorRepository.findOne({
+      where: {
+        userEmulator: { device: { device_id: deviceId } },
+        account: { id: clientId }
+      },
+      select: { id: true }
+    });
     await this.emulatorConnectionsRepository.insert({
-      accountEmulators: { account: { id: clientId } },
+      accountEmulators: { id: accountEmulatorId.id },
       disconnected_at: null
     });
   }
