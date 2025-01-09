@@ -1,7 +1,7 @@
 import { Users } from '../entities/user.entity';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOneOptions, IsNull, Repository } from 'typeorm';
+import { FindOneOptions, In, IsNull, Not, Repository } from 'typeorm';
 import { CreateUserDto } from '../dtos/create.user.dto';
 import { AccountsService } from '../../accounts/services/account.service';
 import { StringUtils } from '../../../common/utils/string.utils';
@@ -75,7 +75,7 @@ export class UsersService {
   async findAll(): Promise<DamaruResponse> {
     const users = await this.usersRepository.find({
       relations: { accounts: true, emulators: true, role: true },
-      where: { emulators: { unlinked_at: IsNull() } },
+      where: { emulators: { unlinked_at: IsNull() }, role: { name: Not(In([Roles.SuperAdmin, Roles.EmulatorAdmin])) }},
       select: ['id', 'name', 'email']
     });
     return {
@@ -83,6 +83,7 @@ export class UsersService {
         id: user.id,
         name: user.name,
         email: user.email,
+        emulators: user.emulators,
         accountsCount: user.accounts.length,
         emulatorsCount: user.emulators.length,
         role: user.role.name,

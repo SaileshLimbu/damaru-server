@@ -134,7 +134,7 @@ export class EmulatorController {
     };
   }
 
-  @UseGuards(SuperAdmin)
+  @UseGuards(AndroidAdmin)
   @ApiConsumes('application/json', 'text/plain')
   @Get('connection-log')
   async connectionLog(@Query('accountId') accountId: string, @Query('deviceId') deviceId: string): Promise<DamaruResponse> {

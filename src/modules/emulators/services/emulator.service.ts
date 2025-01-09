@@ -266,15 +266,17 @@ export class EmulatorService {
     }
   }
 
-  connectedTemplate(deviceName: string, connectedDate: Date, disConnectedDate?: Date): Array<string> {
+  connectedTemplate(accountName: string, deviceName: string, connectedDate: Date, disConnectedDate?: Date): Array<object> {
     const template = [];
-    template.push(`<b> Connected </b> to emulator <b> ${deviceName} </b> at <i> ${DateUtils.format('MMM D, YYYY h:mmA',connectedDate)} </i>`);
+    template.push({
+      description: `<b>${accountName}</b> connected to <b>${deviceName}</b>`,
+      date: connectedDate
+    });
     if (disConnectedDate) {
-      template.push(
-        `<b> Disconnected </b> from emulator <b> ${deviceName} </b> at <i> ${DateUtils.format('MMM D, YYYY h:mmA', disConnectedDate)} </i>( <span class="highlight"> ${DateUtils.diffInDays(disConnectedDate, connectedDate, 's')}s </span>)`
-      );
-    } else {
-      template.push(`<b> Still Connected</b>`);
+      template.push({
+        description: `<b>${accountName}</b> disconnected to <b>${deviceName}</b>(${DateUtils.diffInDays(disConnectedDate, connectedDate, 's')}s)`,
+        date: disConnectedDate,
+      });
     }
     return template;
   }
@@ -289,9 +291,10 @@ export class EmulatorService {
       },
       relations: { accountEmulators: { userEmulator: { device: true } } }
     });
-    const data: Array<string> = [];
+    const data: Array<object> = [];
     emulatorConnections.map((emulatorConnection) => {
       const templates = this.connectedTemplate(
+        emulatorConnection.accountEmulators.account.account_name,
         emulatorConnection.accountEmulators.userEmulator.device.device_name,
         emulatorConnection.connected_at,
         emulatorConnection.disconnected_at
@@ -306,7 +309,8 @@ export class EmulatorService {
       const linkedEmulator = await this.userEmulatorRepository.findOne({
         where: {
           user: { id: emulatorLinkDto.userId },
-          device: { device_id }
+          device: { device_id },
+          unlinked_at: IsNull()
         }
       });
       if (linkedEmulator) {
