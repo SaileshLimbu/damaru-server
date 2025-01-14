@@ -1,7 +1,7 @@
 import { Users } from '../entities/user.entity';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOneOptions, In, Not, Repository } from 'typeorm';
+import { FindOneOptions, In, IsNull, Not, Repository } from 'typeorm';
 import { CreateUserDto } from '../dtos/create.user.dto';
 import { AccountsService } from '../../accounts/services/account.service';
 import { StringUtils } from '../../../common/utils/string.utils';
@@ -11,6 +11,8 @@ import { HashUtils } from '../../../common/utils/hash.utils';
 import { Role as RoleEntity } from '../entities/role.entity';
 import { Roles } from '../enums/roles';
 import { DamaruResponse } from '../../../common/interfaces/DamaruResponse';
+import { Emulator } from '../../emulators/entities/emulator.entity';
+import { EmulatorState } from '../../emulators/interfaces/emulator.state';
 
 @Injectable()
 export class UsersService {
@@ -20,7 +22,9 @@ export class UsersService {
     @InjectRepository(RoleEntity)
     private readonly roleRepository: Repository<RoleEntity>,
     private readonly accountService: AccountsService,
-    private readonly activityLogService: ActivityLogService
+    private readonly activityLogService: ActivityLogService,
+    @InjectRepository(Emulator)
+    private readonly emulatorRepository: Repository<Emulator>
   ) {}
 
   async create(user: CreateUserDto): Promise<DamaruResponse> {
@@ -100,7 +104,11 @@ export class UsersService {
   }
 
   async remove(id: string): Promise<DamaruResponse> {
+    const devices = await this.usersRepository.findOne({ where: { id , emulators: { unlinked_at: IsNull()}}, relations: { emulators: { device: true } } });
     await this.activityLogService.log({ user_id: id, action: Actions.DELETE_USER, metadata: { id } });
+    devices.emulators.map(async (device) => {
+      await this.emulatorRepository.update(device.device.device_id, { state: EmulatorState.AVAILABLE });
+    });
     await this.usersRepository.delete(id);
     return { message: 'User deleted' };
   }
