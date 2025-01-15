@@ -50,4 +50,7 @@ export class Emulator {
 
   @Column({ nullable: true })
   screenshot: string;
+
+  @Column({ nullable: true })
+  details: string;
 }

@@ -11,6 +11,11 @@ export class EmulatorDto {
   @IsString()
   device_name: string;
 
+  @ApiProperty()
+  @IsOptional()
+  @IsString()
+  details?: string;
+
   @IsOptional()
   @IsEnum(EmulatorStatus)
   status: EmulatorStatus;

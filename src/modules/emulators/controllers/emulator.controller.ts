@@ -79,10 +79,10 @@ export class EmulatorController {
     type: EmulatorDto,
     description: 'Emulator Update'
   })
-  @UseGuards(EmulatorAdmin)
+  @UseGuards(EmulatorAdmin, AndroidAdmin)
   @ApiConsumes('application/json', 'text/plain')
-  update(@Param('id') id: string, @Body() updateUserDto: Partial<EmulatorDto>): Promise<DamaruResponse> {
-    return this.emulatorService.update(id, updateUserDto);
+  update(@Param('id') id: string, @Body() updateUserDto: Partial<EmulatorDto>, @Req() authUser: AuthUser): Promise<DamaruResponse> {
+    return this.emulatorService.update(id, updateUserDto, authUser.user);
   }
 
   @Delete(':id')

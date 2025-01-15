@@ -1,5 +1,5 @@
 import { Emulator } from '../entities/emulator.entity';
-import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOneOptions, IsNull, Repository } from 'typeorm';
 import { EmulatorDto } from '../dtos/emulator.dto';
@@ -68,10 +68,22 @@ export class EmulatorService {
    * Updates an emulator entity with the given details.
    * @param id - Unique identifier of the emulator.
    * @param emulator - Partial DTO containing updated properties.
+   * @param user - User details from token
    * @returns The result of the update operation.
    */
-  async update(id: string, emulator: Partial<EmulatorDto>) {
-    return { data: await this.emulatorRepository.update(id, emulator) };
+  async update(id: string, emulator: Partial<EmulatorDto>, user?: JwtToken) {
+    if(user && user.role == Roles.AndroidUser && user.subRole === SubRoles.AndroidAdmin) {
+      const userEmulators = await this.userEmulatorRepository.findOne({ where: { device: { device_id: id }, user: { id: user.sub}, unlinked_at: IsNull() } });
+      if(!userEmulators) {
+        throw new UnauthorizedException('You are not authorized to update this emulator')
+      }
+    }
+    const updated = await this.emulatorRepository.update(id, emulator)
+    if(updated.affected > 0) {
+      return { data: 'Emulator has been updated'};
+    } else {
+      return { data: 'Emulator has not been updated'};
+    }
   }
 
   /**
