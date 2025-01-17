@@ -301,7 +301,7 @@ export class EmulatorService {
           userEmulator: { device: { device_id: deviceId } }
         }
       },
-      relations: { accountEmulators: { userEmulator: { device: true } } }
+      relations: { accountEmulators: { userEmulator: { device: true }, account: true } }
     });
     const data: Array<object> = [];
     emulatorConnections.map((emulatorConnection) => {
