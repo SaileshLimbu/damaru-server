@@ -41,14 +41,25 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          name: Transfer to server
-          command: scp /workspace/dist.zip user@server:/path/to/destination
-      - run:
-          name: SSH to server and deploy (test)
+          name: Setup SSH Key
           command: |
-            ssh user@server "unzip /path/to/destination/dist.zip -d /path/to/destination && \
-                             cp /dev/.env /path/to/destination/.env && \
-                             pm2 restart all && nginx -s reload"
+            mkdir -p ~/.ssh
+            echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+            chmod 600 ~/.ssh/id_rsa
+            ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
+      - run:
+          name: Transfer to Server
+          command: scp -i ~/.ssh/id_rsa dist.zip $SSH_USER@$SERVER_IP:/home/ubuntu/damaru-dev
+      - run:
+          name: Deploy on Test Server
+          command: |
+            ssh -i ~/.ssh/id_rsa $SSH_USER@$SERVER_IP <<EOF
+            unzip /home/ubuntu/damaru-dev/dist.zip -d /home/ubuntu/damaru-dev
+            cp /home/ubuntu/configs/dev/.env /home/ubuntu/damaru-dev/.env
+            pm2 restart damaru-node-dev
+            sudo nginx -s reload
+            sudo systemctl restart nginx
+            EOF
 
   deploy_live:
     docker:
