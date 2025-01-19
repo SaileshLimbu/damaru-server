@@ -51,7 +51,7 @@ jobs:
           command: scp -i ~/.ssh/id_rsa dist.zip $SSH_USER@$SERVER_IP:/home/ubuntu/damaru-dev
       - run:
           name: Deploy on Test Server
-          command: ssh -i ~/.ssh/id_rsa $SSH_USER@$SERVER_IP "sh /home/ubuntu/damaru-dev/deploy-test.sh"
+          command: ssh -i ~/.ssh/id_rsa $SSH_USER@$SERVER_IP "source /home/ubuntu/.bashrc && sh /home/ubuntu/damaru-dev/deploy-dev.sh"
 
   deploy_live:
     docker:
