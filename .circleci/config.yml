@@ -39,7 +39,7 @@ jobs:
     steps:
       - checkout
       - attach_workspace:
-          at: /workspace
+          at: .
       - run:
           name: Transfer to server
           command: scp /workspace/dist.zip user@server:/path/to/destination
@@ -56,7 +56,7 @@ jobs:
     steps:
       - checkout
       - attach_workspace:
-          at: /workspace
+          at: .
       - run:
           name: Transfer to server
           command: scp /workspace/dist.zip user@server:/path/to/destination
