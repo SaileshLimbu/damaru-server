@@ -11,9 +11,17 @@ jobs:
     executor: node-executor
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - npm-deps-{{ checksum "package-lock.json" }}
+            - npm-deps-
       - run:
           name: Install dependencies
           command: npm install
+      - save_cache:
+          paths:
+            - node_modules
+          key: npm-deps-{{ checksum "package-lock.json" }}
       - run:
           name: Build app
           command: npm run build
@@ -66,14 +74,14 @@ workflows:
       - deploy_test:
           requires:
             - build
-#          filters:
-#            branches:
-#              only:
-#                - test
+          filters:
+            branches:
+              only:
+                - feature/deployment
       - deploy_live:
           requires:
             - build
-#          filters:
-#            branches:
-#              only:
-#                - live
+          filters:
+            branches:
+              only:
+                - live
