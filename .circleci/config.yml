@@ -3,7 +3,7 @@ version: 2.1
 executors:
   node-executor:
     docker:
-      - image: circleci/node:14
+      - image: circleci/node:18
     working_directory: ~/repo
 
 jobs:
@@ -11,23 +11,29 @@ jobs:
     executor: node-executor
     steps:
       - checkout
+
       - restore_cache:
           keys:
             - npm-deps-{{ checksum "package-lock.json" }}
             - npm-deps-
+
       - run:
           name: Install dependencies
-          command: npm install
+          command: npm ci
+
       - save_cache:
           paths:
             - node_modules
           key: npm-deps-{{ checksum "package-lock.json" }}
+
       - run:
           name: Build app
           command: npm run build
+
       - run:
           name: Zip build
-          command: zip -r dist.zip dist
+          command: zip -r dist.zip dist package.json package-lock.json node_modules
+
       - persist_to_workspace:
           root: .
           paths:
@@ -40,18 +46,29 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
+
       - run:
           name: Setup SSH Key
           command: |
             mkdir -p ~/.ssh
+            echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
             chmod 600 ~/.ssh/id_rsa
             ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
+
       - run:
           name: Transfer to Server
           command: scp -i ~/.ssh/id_rsa dist.zip $SSH_USER@$SERVER_IP:/home/ubuntu/damaru-dev
+
       - run:
           name: Deploy on Test Server
-          command: ssh -i ~/.ssh/id_rsa $SSH_USER@$SERVER_IP "sh /home/ubuntu/damaru-dev/deploy-dev.sh"
+          command: |
+            ssh -i ~/.ssh/id_rsa $SSH_USER@$SERVER_IP "
+              cd /home/ubuntu/damaru-dev &&
+              unzip -o dist.zip &&
+              npm ci &&
+              pm2 restart damaru-dev || pm2 start dist/main.js --name damaru-dev &&
+              sudo systemctl restart nginx
+            "
 
   deploy_live:
     docker:
@@ -60,14 +77,28 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
+
       - run:
-          name: Transfer to server
-          command: scp /workspace/dist.zip user@server:/path/to/destination
-      - run:
-          name: SSH to server and deploy (live)
+          name: Setup SSH Key
           command: |
-            ssh user@server "unzip /path/to/destination/dist.zip -d /path/to/destination && \
-                             pm2 start all && nginx -s reload"
+            mkdir -p ~/.ssh
+            echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+            chmod 600 ~/.ssh/id_rsa
+            ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
+
+      - run:
+          name: Transfer to Server
+          command: scp -i ~/.ssh/id_rsa dist.zip $SSH_USER@$SERVER_IP:/home/ubuntu/damaru-dev
+
+      - run:
+          name: SSH to server and deploy (Live)
+          command: |
+            ssh -i ~/.ssh/id_rsa $SSH_USER@$SERVER_IP "
+              cd /home/ubuntu/damaru-dev &&
+              unzip -o dist.zip &&
+              pm2 restart all &&
+              sudo systemctl restart nginx
+            "
 
 workflows:
   version: 2
