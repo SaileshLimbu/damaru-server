@@ -17,9 +17,15 @@ async function bootstrap() {
   const logger = new Logger('App-Error');
   const configService = app.get(ConfigService);
 
+  let title = `Damaru APIs`;
+  if (process.env.ENVIRONMENT === Environments.PRODUCTION) {
+    title += '[LIVE]';
+  } else {
+    title += '[DEVELOPMENT]';
+  }
   // Swagger setup
   const options = new DocumentBuilder()
-    .setTitle('Damaru API')
+    .setTitle(title)
     .setDescription('Damaru is a system designed for screen sharing and emulator management')
     .setVersion('1.0')
     .addBearerAuth()
