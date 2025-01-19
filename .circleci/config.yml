@@ -62,13 +62,7 @@ jobs:
       - run:
           name: Deploy on Test Server
           command: |
-            ssh -i ~/.ssh/id_rsa $SSH_USER@$SERVER_IP "
-              cd /home/ubuntu/damaru-dev &&
-              unzip -o dist.zip &&
-              npm ci &&
-              pm2 restart damaru-dev || pm2 start dist/main.js --name damaru-dev &&
-              sudo systemctl restart nginx
-            "
+            command: ssh -i ~/.ssh/id_rsa $SSH_USER@$SERVER_IP "sh /home/ubuntu/damaru-dev/deploy-dev.sh"
 
   deploy_live:
     docker:
