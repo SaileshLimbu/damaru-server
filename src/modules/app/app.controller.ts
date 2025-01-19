@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { EncryptionService } from '../../core/encryption/encryption.service';
@@ -8,6 +8,8 @@ import { EncryptionDto } from './dtos/EncryptonDto';
 import { ExcludeInterceptor } from '../../core/middlewares/ExcludeEncryptionInterceptor';
 import { ConfigService } from '@nestjs/config';
 import { DamaruResponse } from '../../common/interfaces/DamaruResponse';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Response } from 'express';
 
 @ApiTags('Application')
 @Controller()
@@ -65,5 +67,34 @@ export class AppController {
       message: 'Encryption status fetched',
       data: await this.encryptionService.toggleEncryption(status.toString() === 'true')
     };
+  }
+
+  @ExcludeInterceptor()
+  @Post('apk/upload')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } }
+    }
+  })
+  async uploadFile(@UploadedFile() file: Express.Multer.File): Promise<DamaruResponse> {
+    return {
+      message: 'Apk has been uploaded successfully',
+      data: {
+        originalName: file.originalname,
+        savedFileName: file.filename,
+        path: file.path
+      }
+    };
+  }
+
+  @ExcludeInterceptor()
+  @Get('apk/download')
+  downloadFile(@Res() res: Response) {
+    const filePath = this.appService.getApkPath();
+    res.download(filePath);
+    return { link: filePath, message: 'Apk has been downloaded successfully' };
   }
 }
