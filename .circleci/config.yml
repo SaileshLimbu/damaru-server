@@ -44,7 +44,6 @@ jobs:
           name: Setup SSH Key
           command: |
             mkdir -p ~/.ssh
-            echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
             chmod 600 ~/.ssh/id_rsa
             ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
       - run:
