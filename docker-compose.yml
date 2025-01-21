@@ -1,0 +1,52 @@
+services:
+  dev_postgres:
+    image: postgres:latest
+    container_name: damaru-dev
+    restart: always
+    environment:
+      POSTGRES_USER: $DB_USER
+      POSTGRES_PASSWORD: $DB_PASSWORD
+      POSTGRES_DB: $DB_NAME
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - ./db/pgData:/var/lib/postgresql/data
+#      - ./backup:/backup
+#    networks:
+#      - pg_network
+#
+#  postgres2:
+#    image: postgres:latest
+#    container_name: postgres2
+#    restart: always
+#    environment:
+#      POSTGRES_USER: user2
+#      POSTGRES_PASSWORD: password2
+#      POSTGRES_DB: db2
+#    ports:
+#      - "5433:5432"
+#    networks:
+#      - pg_network
+#
+#  backup:
+#    image: postgres:latest
+#    container_name: postgres1_backup
+#    restart: always
+#    depends_on:
+#      - postgres1
+#    volumes:
+#      - ./backup:/backup
+#    environment:
+#      PGPASSWORD: password1
+#    entrypoint: >
+#      /bin/sh -c "while true; do
+#      pg_dump -h postgres1 -U user1 -d db1 > /backup/db1_backup_$(date +%Y%m%d%H%M%S).sql;
+#      sleep 86400;
+#      done"
+
+#networks:
+#  pg_network:
+#    driver: bridge
+
+#volumes:
+#  pgData:

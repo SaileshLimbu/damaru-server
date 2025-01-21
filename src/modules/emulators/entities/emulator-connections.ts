@@ -9,10 +9,10 @@ export class EmulatorConnections {
   @ManyToOne(() => AccountEmulators, (accountEmulators) => accountEmulators.accountEmulatorConnections,  { onDelete: 'CASCADE' })
   accountEmulators: AccountEmulators;
 
-  @CreateDateColumn({ type: 'datetime' })
+  @CreateDateColumn({ type: 'timestamp' })
   connected_at: Date;
 
-  @UpdateDateColumn({ type: 'datetime', nullable: true })
+  @UpdateDateColumn({ type: 'timestamp', nullable: true })
   disconnected_at: Date;
 
   @Column({ type: 'text', nullable: true })

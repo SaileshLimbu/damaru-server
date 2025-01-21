@@ -17,12 +17,12 @@
 
 <script>
   const androidEmulator = '1'; // Unique ID for the emulator
-  const signalingServer = 'ws://localhost:3000/signaling'; // Socket.IO server
+  const signalingServer = 'http://localhost:3000/signaling'; // Socket.IO server
   const socketOptions = {
     transportOptions: {
       polling: {
         extraHeaders: {
-          Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzIiwiZW1haWwiOiJlbXVsYXRvckFkbWluQGRhbWFydS5jb20iLCJyb2xlIjoiRW11bGF0b3JBZG1pbiIsImlhdCI6MTczNjM4NjE2NSwiZXhwIjoxNzY3OTIyMTY1fQ.qP3p1YVEae_Xz75xELWSUItB12IIzIuSpd6UfR7-cRc'
+          Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2MTJmM2NjZi00N2JkLTQ5NWItYmM3Mi1jOWZlYTJlYjAxM2EiLCJlbWFpbCI6InN1cGVyYWRtaW5AZGFtYXJ1LmNvbSIsInJvbGUiOiJTdXBlckFkbWluIiwiaWF0IjoxNzM3MTM0MzM0LCJleHAiOjE3Mzk3MjYzMzR9.HIeMBf0bgSTf4S8coP3qIfaAqKDRMVNj40X-y8r6iyg'
         }
       }
     }
