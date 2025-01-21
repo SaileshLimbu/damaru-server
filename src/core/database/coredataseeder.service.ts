@@ -23,11 +23,13 @@ export class CoreDataSeederService {
   async seedEmulatorUser() {
     const emulatorUser = await this.usersRepository.findOne({where: { email: this.configService.get('EMULATOR_USER_EMAIL')}})
     if(!emulatorUser) {
+      const role = await this.roleRepository.findOne({ where: { name: Roles.EmulatorAdmin.toString() } });
+
       const emulatorUser = this.usersRepository.create({
         name: this.configService.get('EMULATOR_USER_NAME'),
         email: this.configService.get('EMULATOR_USER_EMAIL'),
         password: await HashUtils.hash(this.configService.get('EMULATOR_USER_PASSWORD')),
-        role: { name: Roles.EmulatorAdmin } as Role
+        role: { id: role.id }
       });
       await this.usersRepository.save(emulatorUser);
     }
@@ -36,11 +38,13 @@ export class CoreDataSeederService {
   async seedSuperAdmin(){
     const superAdmin = await this.usersRepository.findOne({where: { email: this.configService.get('SUPER_ADMIN_EMAIL')}})
     if(!superAdmin) {
+      const role = await this.roleRepository.findOne({ where: { name: Roles.SuperAdmin.toString() } });
+
       const superAdmin = this.usersRepository.create({
         name: this.configService.get('SUPER_ADMIN_NAME'),
         email: this.configService.get('SUPER_ADMIN_EMAIL'),
         password: await HashUtils.hash(this.configService.get('SUPER_ADMIN_PASSWORD')),
-        role: { name: Roles.SuperAdmin } as Role
+        role: { id: role.id}
       });
       await this.usersRepository.save(superAdmin);
     }
