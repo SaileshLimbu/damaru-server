@@ -6,6 +6,7 @@ import { Roles } from '../../modules/users/enums/roles';
 import { Encryption } from '../../modules/app/entities/encryption';
 import { ConfigService } from '@nestjs/config';
 import { Users } from '../../modules/users/entities/user.entity';
+import { HashUtils } from '../../common/utils/hash.utils';
 
 @Injectable()
 export class CoreDataSeederService {
@@ -25,7 +26,7 @@ export class CoreDataSeederService {
       const emulatorUser = this.usersRepository.create({
         name: this.configService.get('EMULATOR_USER_NAME'),
         email: this.configService.get('EMULATOR_USER_EMAIL'),
-        password: this.configService.get('EMULATOR_USER_PASSWORD'),
+        password: await HashUtils.hash(this.configService.get('EMULATOR_USER_PASSWORD')),
         role: { name: Roles.EmulatorAdmin } as Role
       });
       await this.usersRepository.save(emulatorUser);
@@ -38,7 +39,7 @@ export class CoreDataSeederService {
       const superAdmin = this.usersRepository.create({
         name: this.configService.get('SUPER_ADMIN_NAME'),
         email: this.configService.get('SUPER_ADMIN_EMAIL'),
-        password: this.configService.get('SUPER_ADMIN_PASSWORD'),
+        password: await HashUtils.hash(this.configService.get('SUPER_ADMIN_PASSWORD')),
         role: { name: Roles.SuperAdmin } as Role
       });
       await this.usersRepository.save(superAdmin);
