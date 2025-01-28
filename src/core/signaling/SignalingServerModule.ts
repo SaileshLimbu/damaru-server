@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { SignalingServerGateway } from './SignalingServerGateway';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -17,7 +17,9 @@ import { ActivityLogModule } from '../../modules/activity_logs/activity_log.modu
       }),
       inject: [ConfigService]
     }),
-    EmulatorModule, ActivityLogModule
-  ]
+    forwardRef(() => EmulatorModule),
+    ActivityLogModule
+  ],
+  exports: [SignalingServerGateway]
 })
 export class SignalingServerModule {}

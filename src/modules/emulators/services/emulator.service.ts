@@ -1,5 +1,5 @@
 import { Emulator } from '../entities/emulator.entity';
-import { HttpException, HttpStatus, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { forwardRef, HttpException, HttpStatus, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOneOptions, IsNull, Repository } from 'typeorm';
 import { EmulatorDto } from '../dtos/emulator.dto';
@@ -21,6 +21,7 @@ import { ExtendExpiryDto } from '../dtos/extend-expiry.dto';
 import { EmulatorConnections } from '../entities/emulator-connections';
 import { MultiAccountsLinkDto } from '../dtos/multi-accounts.link.dto';
 import { MultiDevicesAccountLinkDto } from '../dtos/multi-devices-account-link.dto';
+import { SignalingServerGateway } from '../../../core/signaling/SignalingServerGateway';
 
 /**
  * EmulatorService is responsible for managing emulator-related operations,
@@ -40,7 +41,9 @@ export class EmulatorService {
     @InjectRepository(EmulatorConnections)
     private readonly emulatorConnectionsRepository: Repository<EmulatorConnections>,
     private readonly configService: ConfigService,
-    private readonly accountService: AccountsService
+    private readonly accountService: AccountsService,
+    @Inject(forwardRef(() => SignalingServerGateway))
+    private readonly signalingServer: SignalingServerGateway
   ) {}
 
   /**
@@ -486,6 +489,7 @@ export class EmulatorService {
     const emulator = await this.emulatorRepository.findOne({ where: { device_id: clientId } });
     if (emulator) {
       await this.emulatorRepository.update(clientId, { status: EmulatorStatus.offline });
+      this.signalingServer.restartConnection(emulator.device_name)
     } else {
       const emulatorConnection = await this.emulatorConnectionsRepository.findOne({
         where: {
@@ -498,4 +502,10 @@ export class EmulatorService {
       }
     }
   }
+
+  async restart(deviceName: string): Promise<DamaruResponse> {
+    this.signalingServer.restartConnection(deviceName)
+    return { message: 'Restarting emulator' };
+  }
+
 }

@@ -11,6 +11,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { diskStorage } from 'multer';
 import { AccountEmulators } from './entities/account-emulators';
 import { AccountsModule } from '../accounts/account.module';
+import { SignalingServerModule } from '../../core/signaling/SignalingServerModule';
 
 @Module({
   imports: [
@@ -38,7 +39,8 @@ import { AccountsModule } from '../accounts/account.module';
       inject: [ConfigService]
     }),
     ActivityLogModule,
-    AccountsModule
+    AccountsModule,
+    SignalingServerModule
   ],
   providers: [EmulatorService],
   controllers: [EmulatorController],

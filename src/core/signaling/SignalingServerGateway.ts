@@ -12,12 +12,14 @@ import {
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { WsJwtGuard } from '../guards/wsjwt.guard';
-import { UseGuards } from '@nestjs/common';
+import { forwardRef, Inject, UseGuards } from '@nestjs/common';
 import { EmulatorService } from '../../modules/emulators/services/emulator.service';
 import { EmulatorStatus } from '../../modules/emulators/interfaces/emulator.status';
 import { EmulatorAdmin } from '../guards/emulator_admin.guard';
 import { AndroidUsers } from '../guards/android_user.guard';
 import { EmulatorUsers } from '../guards/emulator_user.guard';
+import { JwtToken } from '../../modules/auth/interfaces/jwt_token';
+import { Roles } from '../../modules/users/enums/roles';
 
 @WebSocketGateway({
   namespace: 'signaling',
@@ -28,13 +30,14 @@ import { EmulatorUsers } from '../guards/emulator_user.guard';
 export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly jwtService: JwtService,
+    @Inject(forwardRef(()=> EmulatorService))
     private readonly emulatorService: EmulatorService
   ) {}
 
   @WebSocketServer()
   server: Server;
   private connections = new Map<string, Socket>();
-
+  private readonly emulatorAdminRoom: string = 'emulatorAdmin';
   @UseGuards(WsJwtGuard, EmulatorAdmin)
   @SubscribeMessage('StartStreaming')
   async handleStartStreaming(@ConnectedSocket() client: Socket, @MessageBody() { deviceId }: { deviceId: string }) {
@@ -120,8 +123,10 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
       try {
         let auth_token = socket.handshake.headers.authorization;
         auth_token = auth_token.split(' ')[1];
-        const user = this.jwtService.verify(auth_token);
-        console.log(user);
+        const user: JwtToken = this.jwtService.verify(auth_token);
+        if (user.role === Roles.EmulatorAdmin) {
+          socket.join(this.emulatorAdminRoom)
+        }
         next();
       } catch (e) {
         next(new WsException('Unauthorized'));
@@ -129,7 +134,11 @@ export class SignalingServerGateway implements OnGatewayInit, OnGatewayConnectio
     });
   }
 
-  handleConnection(client: Socket): any {
+  restartConnection(deviceName: string) {
+    this.server.to(this.emulatorAdminRoom).emit('restart', { deviceName });
+  }
+
+  handleConnection(client: Socket) {
     console.log('Client connected', client.id);
   }
 

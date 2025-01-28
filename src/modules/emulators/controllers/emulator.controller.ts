@@ -186,6 +186,11 @@ export class EmulatorController {
     };
   }
 
+  @Get('restart/:device_name')
+  async restartEmulator(@Param('device_name') deviceName: string): Promise<DamaruResponse> {
+    return await this.emulatorService.restart(deviceName);
+  }
+
   @ApiBody({
     type: MultiAccountsLinkDto,
     description: 'Unassign emulator from multiple account dto'
