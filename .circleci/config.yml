@@ -42,6 +42,7 @@ jobs:
   deploy_test:
     docker:
       - image: circleci/python:3.7
+    type: approval  # This makes the job manual
     steps:
       - checkout
       - attach_workspace:
@@ -81,17 +82,11 @@ jobs:
 
       - run:
           name: Transfer to Server
-          command: scp -i ~/.ssh/id_rsa dist.zip $SSH_USER@$SERVER_IP:/home/ubuntu/damaru-dev
+          command: scp -i ~/.ssh/id_rsa dist.zip $SSH_USER@$SERVER_IP:/home/ubuntu/damaru
 
       - run:
           name: SSH to server and deploy (Live)
-          command: |
-            ssh -i ~/.ssh/id_rsa $SSH_USER@$SERVER_IP "
-              cd /home/ubuntu/damaru-dev &&
-              unzip -o dist.zip &&
-              pm2 restart all &&
-              sudo systemctl restart nginx
-            "
+          command: ssh -i ~/.ssh/id_rsa $SSH_USER@$SERVER_IP "sh /home/ubuntu/damaru-dev/deploy-prod.sh"
 
 workflows:
   version: 2
