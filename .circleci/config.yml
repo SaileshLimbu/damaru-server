@@ -85,7 +85,7 @@ jobs:
 
       - run:
           name: SSH to server and deploy (Live)
-          command: ssh -i ~/.ssh/id_rsa $SSH_USER@$SERVER_IP "sh /home/ubuntu/damaru-dev/deploy-prod.sh"
+          command: ssh -i ~/.ssh/id_rsa $SSH_USER@$SERVER_IP "sh /home/ubuntu/damaru/deploy-prod.sh"
 
 workflows:
   version: 2
