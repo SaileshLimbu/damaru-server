@@ -19,7 +19,7 @@ export class ApkService {
   }
 
   getApkDownloadLink(): string {
-    return `${this.configService.get<string>('SCREENSHOT_URL')}/apk/download`;
+    return `${this.configService.get<string>('SCREENSHOT_URL')}/apks/download`;
   }
 
   async getLatestApkPath(): Promise<Apk> {
