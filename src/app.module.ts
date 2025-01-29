@@ -1,4 +1,4 @@
-import { BadRequestException, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { registerConfigModule, registerDatabaseModule, registerStatic } from './modules.registry';
 import { AppController } from './modules/app/app.controller';
 import { AppService } from './modules/app/app.service';
@@ -14,9 +14,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Encryption } from './modules/app/entities/encryption';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ResponseInterceptor } from './core/middlewares/ResponseInterceptor';
-import { MulterModule } from '@nestjs/platform-express';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { diskStorage } from 'multer';
+import { ApkModule } from './modules/apks/apk.module';
 
 @Module({
   imports: [
@@ -30,25 +28,7 @@ import { diskStorage } from 'multer';
     ActivityLogModule,
     SeederModule,
     SignalingServerModule,
-    MulterModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        storage: diskStorage({
-          destination: configService.get<string>('APK_PATH'),
-          filename: (_req, _file, callback) => {
-            callback(null, `damaru.apk`);
-          }
-        }),
-        fileFilter: (_req, file, callback) => {
-          const allowedMimeTypes = ['application/vnd.android.package-archive'];
-          if (!allowedMimeTypes.includes(file.mimetype)) {
-            return callback(new BadRequestException('Only apk files are allowed!'), false);
-          }
-          callback(null, true);
-        }
-      }),
-      inject: [ConfigService]
-    }),
+    ApkModule,
     TypeOrmModule.forFeature([Encryption])
   ],
   controllers: [AppController],
