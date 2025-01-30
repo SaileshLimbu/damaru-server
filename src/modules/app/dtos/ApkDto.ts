@@ -6,6 +6,9 @@ export class ApkDto {
   @IsNumber()
   version: number;
 
+  @ApiProperty({ type: 'string', format: 'binary', required: true })
+  file: Express.Multer.File;
+
   @ApiProperty()
   @IsBoolean()
   force: boolean;
