@@ -2,17 +2,25 @@ import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nes
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { DamaruResponse } from '../../common/interfaces/DamaruResponse';
+import { EncryptionService } from '../encryption/encryption.service';
 
 @Injectable()
 export class ResponseInterceptor implements NestInterceptor {
   private readonly SUCCESS_MESSAGE = 'Success';
 
-  intercept(_: ExecutionContext, next: CallHandler): Observable<DamaruResponse> {
+  constructor(private readonly encryptionService: EncryptionService) {}
+
+  async intercept(_: ExecutionContext, next: CallHandler): Promise<Observable<DamaruResponse | string>> {
+    const encryption = await this.encryptionService.getEncryption();
+
     return next.handle().pipe(
       map((data) => {
+        if (encryption.enabled) {
+          return JSON.parse(JSON.stringify(data));
+        }
         const message = data.message ?? this.SUCCESS_MESSAGE;
-        delete data?.message
-        data =  data?.data;
+        delete data?.message;
+        data = data?.data;
         return {
           status: true,
           message,

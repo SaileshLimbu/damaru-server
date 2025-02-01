@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { EmulatorDto } from '../dtos/emulator.dto';
 import { EmulatorService } from '../services/emulator.service';
 import { MultiDevicesLinkDto } from '../dtos/multi-devices-link.dto';
@@ -27,6 +27,7 @@ export class EmulatorController {
   @UseGuards(EmulatorUsers)
   @ApiOperation({ description: 'Android users or Emulator Admin can view emulators' })
   @ApiConsumes('application/json', 'text/plain')
+  @ApiHeader({ name: 'X-Metadata', description: 'Rsa encrypted key', })
   findAll(@Req() authUser: AuthUser): Promise<DamaruResponse> {
     return this.emulatorService.findAll(authUser.user);
   }
@@ -34,6 +35,7 @@ export class EmulatorController {
   @Get('linkedAccounts')
   @UseGuards(AndroidAdmin)
   @ApiOperation({ description: 'Android users or Emulator Admin can view emulators' })
+  @ApiHeader({ name: 'X-Metadata', description: 'Rsa encrypted key', })
   @ApiConsumes('application/json', 'text/plain')
   findLinkAccounts(@Query('deviceId') deviceId: string): Promise<DamaruResponse> {
     return this.emulatorService.findLinkedDevices(deviceId);
@@ -88,6 +90,7 @@ export class EmulatorController {
   @Delete(':id')
   @ApiConsumes('application/json', 'text/plain')
   @UseGuards(EmulatorAdmin)
+  @ApiHeader({ name: 'X-Metadata', description: 'Rsa encrypted key', })
   delete(@Param('id') id: string): Promise<DamaruResponse> {
     return this.emulatorService.remove(id);
   }
@@ -137,6 +140,7 @@ export class EmulatorController {
   @UseGuards(AndroidAdmin)
   @ApiConsumes('application/json', 'text/plain')
   @Get('connection-log')
+  @ApiHeader({ name: 'X-Metadata', description: 'Rsa encrypted key', })
   async connectionLog(@Query('accountId') accountId: string, @Query('deviceId') deviceId: string): Promise<DamaruResponse> {
     return await this.emulatorService.connectionLog(accountId, deviceId);
   }
@@ -187,6 +191,7 @@ export class EmulatorController {
   }
 
   @Get('restart/:device_name')
+  @ApiHeader({ name: 'X-Metadata', description: 'Rsa encrypted key', })
   async restartEmulator(@Param('device_name') deviceName: string): Promise<DamaruResponse> {
     return await this.emulatorService.restart(deviceName);
   }

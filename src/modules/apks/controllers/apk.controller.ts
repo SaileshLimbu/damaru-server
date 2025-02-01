@@ -12,10 +12,10 @@ import { Response } from 'express';
 @ApiTags('Apks')
 @ApiBearerAuth()
 @Controller('apks')
+@ExcludeInterceptor()
 export class ApkController {
   constructor(private readonly apkService: ApkService) {}
 
-  @ExcludeInterceptor()
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   @UseGuards(JwtAuthGuard, SuperAdmin)
@@ -28,14 +28,12 @@ export class ApkController {
     return this.apkService.uploadApk(apkDto, file);
   }
 
-  @ExcludeInterceptor()
   @Get('get')
   async getApk() {
     const apk = await this.apkService.getLatestApkPath();
     return { message: 'Latest apk details', data: { ...apk, link: `${this.apkService.getApkDownloadLink()}` } };
   }
 
-  @ExcludeInterceptor()
   @Get('download')
   async downloadFile(@Res() res: Response) {
     const filePath = await this.apkService.getLatestApkPath();

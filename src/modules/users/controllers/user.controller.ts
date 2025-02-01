@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { UsersService } from '../services/user.service';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiHeader, ApiTags } from '@nestjs/swagger';
 import { CreateUserDto } from '../dtos/create.user.dto';
 import { Roles } from '../enums/roles';
 import { JwtAuthGuard } from '../../../core/guards/jwt.guard';
@@ -14,11 +14,7 @@ import { DamaruResponse } from '../../../common/interfaces/DamaruResponse';
 export class UsersController {
   constructor(private readonly userServices: UsersService) {}
 
-  /**
-   * Retrieves all users.
-   *
-   * @returns An array of all user objects
-   */
+  @ApiHeader({ name: 'X-Metadata', description: 'Rsa encrypted key', })
   @Get()
   @ApiConsumes('application/json', 'text/plain')
   findAll(): Promise<DamaruResponse> {
@@ -27,10 +23,6 @@ export class UsersController {
 
   @Post()
   @ApiConsumes('application/json', 'text/plain')
-  @ApiBody({
-    type: CreateUserDto,
-    description: 'User Create'
-  })
   create(@Body() createUserDto: CreateUserDto): Promise<DamaruResponse> {
     return this.userServices.create({ ...createUserDto, role: createUserDto.role ?? Roles.AndroidUser });
   }
@@ -46,6 +38,7 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @ApiHeader({ name: 'X-Metadata', description: 'Rsa encrypted key', })
   @ApiConsumes('application/json', 'text/plain')
   delete(@Param('id') id: string): Promise<DamaruResponse> {
     return this.userServices.remove(id);

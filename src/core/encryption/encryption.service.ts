@@ -86,11 +86,8 @@ export class EncryptionService {
     // Split the payload into two parts
     const rsaEncryptedKeyLength = 344; // RSA-2048 encrypted key length in base64
     const rsaEncryptedKey = encryptedPayload.substring(0, rsaEncryptedKeyLength);
-    console.log({ rsaEncryptedKey });
     const aesEncryptedData = encryptedPayload.substring(rsaEncryptedKeyLength);
-    console.log({ aesEncryptedData });
     const decryptedAesKey = this.rsaDecrypt(rsaEncryptedKey);
-    console.log({ decryptedAesKey });
     return {
       data: JSON.parse(this.aesDecrypt(aesEncryptedData, decryptedAesKey)) as Json,
       aesKey: decryptedAesKey,

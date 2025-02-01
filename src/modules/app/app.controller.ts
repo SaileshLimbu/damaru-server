@@ -38,6 +38,7 @@ export class AppController {
     const key = jsonToEncrypt.key ?? this.configService.get('DEFAULT_AES_KEY');
     console.log('key for encryption', key);
     const rsaEncryptedKey = this.encryptionService.rsaEncrypt(key);
+    console.log('rsaEncryptedKey', rsaEncryptedKey)
     return {
       message: 'Data Encrypted',
       data: rsaEncryptedKey + this.encryptionService.aesEncrypt(JSON.stringify(jsonToEncrypt), key)
@@ -49,11 +50,9 @@ export class AppController {
   @UseGuards(JwtAuthGuard, SuperAdmin)
   @ExcludeInterceptor()
   @Post('decrypt')
-  decrypt(@Body() encryptedText: string): DamaruResponse {
-    return {
-      message: 'Data decrypted',
-      data: JSON.parse(this.encryptionService.hybridDecrypt(encryptedText).toString())
-    };
+  decrypt(@Body() encryptedText: string) {
+    const json = this.encryptionService.hybridDecrypt(encryptedText);
+    return JSON.parse(JSON.stringify(json))['data'];
   }
 
   @ApiBearerAuth()
