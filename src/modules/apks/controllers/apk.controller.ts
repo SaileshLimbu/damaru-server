@@ -24,7 +24,7 @@ export class ApkController {
     type: ApkDto,
     description: 'Apk data'
   })
-  async uploadFile(@Body() apkDto: ApkDto, @UploadedFile() file: Express.Multer.File): Promise<DamaruResponse> {
+  async uploadApk(@Body() apkDto: ApkDto, @UploadedFile() file: Express.Multer.File): Promise<DamaruResponse> {
     return this.apkService.uploadApk(apkDto, file);
   }
 

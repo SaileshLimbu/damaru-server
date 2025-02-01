@@ -1,8 +1,8 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, PrimaryColumn } from 'typeorm';
 
 @Entity()
 export class Apk {
-  @PrimaryGeneratedColumn('increment')
+  @PrimaryColumn()
   version: number;
 
   @Column({ default: false })

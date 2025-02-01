@@ -19,44 +19,35 @@ export class ApkService {
   }
 
   getApkDownloadLink(): string {
-    return `${this.configService.get<string>('SCREENSHOT_URL')}/apk/download`;
+    return `${this.configService.get<string>('SCREENSHOT_URL')}/apks/download`;
   }
 
   async getLatestApkPath(): Promise<Apk> {
     const version = await this.apkRepository.find({
       order: { version: 'DESC' },
-      select: { version: true, force: true, link: true },
       take: 1
     });
     if (version.length > 0) {
+      version[0].link = `${this.getApkPath()}/${version[0].link}`;
       return version[0];
     } else {
       throw new BadRequestException('No APK found!');
     }
   }
 
-  public async getLatestApkVersion(): Promise<number> {
-    const version = await this.apkRepository.find({
-      order: { version: 'DESC' },
-      select: { version: true },
-      take: 1
-    });
-    return version.length > 0 ? version[0].version : 0;
+  private getFilePath(filename: string): string {
+    return `${this.getApkPath()}/${filename}`;
   }
 
   async uploadApk(apkDto: ApkDto, file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('No file uploaded!');
     }
-
-    // Get latest version dynamically
-    const latestVersion = await this.getLatestApkVersion();
-    console.log({ latestVersion });
-    const newFilename = `damaru-${latestVersion}.apk`;
+    const newFilename = `damaru-${apkDto.version}.apk`;
     const tempFileName = 'damaru.apk';
-    const filePath = `${this.getApkPath()}/${newFilename}`;
-    fs.renameSync(`${this.getApkPath()}/${tempFileName}`, filePath);
-    await this.apkRepository.insert({ force: apkDto.force, link: filePath });
+    console.log({apkDto})
+    fs.renameSync(this.getFilePath(tempFileName), this.getFilePath(newFilename));
+    await this.apkRepository.upsert({ version: parseInt(apkDto.version.toString()), force: apkDto.force.toString() === 'true', link: newFilename }, ['version']);
     return {
       message: 'APK uploaded successfully'
     };
