@@ -11,6 +11,7 @@ import { Encryption } from './modules/app/entities/encryption';
 import { ServeStaticModule, ServeStaticModuleOptions } from '@nestjs/serve-static';
 import { resolve } from 'path';
 import { AccountEmulators } from './modules/emulators/entities/account-emulators';
+import { Apk } from './modules/apks/entities/Apk';
 
 
 /**
@@ -32,7 +33,7 @@ export const registerDatabaseModule = () =>
     database: process.env.DB_NAME,
     entities: [
       Users, Account, UserEmulators, Emulator, EmulatorConnections,
-      ActivityLog, Role, Encryption, AccountEmulators
+      ActivityLog, Role, Encryption, AccountEmulators, Apk
     ],
     synchronize: true
   });
