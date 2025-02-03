@@ -12,7 +12,6 @@ import { Response } from 'express';
 @ApiTags('Apks')
 @ApiBearerAuth()
 @Controller('apks')
-@ExcludeInterceptor()
 export class ApkController {
   constructor(private readonly apkService: ApkService) {}
 
