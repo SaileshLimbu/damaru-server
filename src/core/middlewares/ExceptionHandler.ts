@@ -1,4 +1,4 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus, Logger } from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus } from '@nestjs/common';
 import { Response } from 'express';
 
 /**
@@ -9,15 +9,14 @@ import { Response } from 'express';
 export class ExceptionHandler implements ExceptionFilter {
   /**
    * Constructor to inject the Logger service.
-   * @param logger - The logger instance from nestjs-pino.
    */
   constructor(
-    private readonly logger: Logger
   ) {}
 
   /**
    * Method to catch and handle exceptions.
    * @param exception - The caught exception.
+   * @param host host
    */
   catch(exception: Error, host: ArgumentsHost): void {
     const message = exception.message;
@@ -25,7 +24,7 @@ export class ExceptionHandler implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
 
     // Log the exception details
-    this.logger.error(
+    console.error(
       exception.message,
       JSON.stringify({
         stack: exception.stack
@@ -33,7 +32,8 @@ export class ExceptionHandler implements ExceptionFilter {
     );
     response.status(HttpStatus.OK).json({
       status: false,
-      message
+      message,
+      stack: exception.stack
     });
   }
 }

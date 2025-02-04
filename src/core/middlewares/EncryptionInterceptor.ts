@@ -69,14 +69,14 @@ export class EncryptionInterceptor implements NestInterceptor {
         }
       } catch (error) {
         console.log('Failed to decrypt request parameters', error);
-        return next.handle().pipe(
-          map(() => {
-            if(isDev) {
-              return { status: false, message: 'Failed to process your request,[Encryption/Decryption error]', stack: error.stack};
-            }
-            return { status: false, message: 'Failed to process your request,[Encryption/Decryption error]' };
-          })
-        );
+        return isDev ? of({
+          status: false,
+          message: 'Failed to decrypt request parameters',
+          stack: error.stack
+        }) : of({
+          status: false,
+          message: 'Failed to decrypt request parameters'
+        });
       }
     } else {
       console.warn('Encryption has been disabled in database');
