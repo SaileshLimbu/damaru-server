@@ -1,5 +1,5 @@
-import { Catch, ExceptionFilter, Logger } from '@nestjs/common';
-import { DamaruException } from '../../common/interfaces/DamaruException';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus, Logger } from '@nestjs/common';
+import { Response } from 'express';
 
 /**
  * CustomException class implements the NestJS ExceptionFilter interface
@@ -19,8 +19,10 @@ export class ExceptionHandler implements ExceptionFilter {
    * Method to catch and handle exceptions.
    * @param exception - The caught exception.
    */
-  catch(exception: Error): void {
+  catch(exception: Error, host: ArgumentsHost): void {
     const message = exception.message;
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
 
     // Log the exception details
     this.logger.error(
@@ -29,6 +31,9 @@ export class ExceptionHandler implements ExceptionFilter {
         stack: exception.stack
       })
     );
-    throw new DamaruException(message, exception.stack);
+    response.status(HttpStatus.OK).json({
+      status: false,
+      message
+    });
   }
 }
