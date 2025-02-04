@@ -1,4 +1,4 @@
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiHeader, ApiTags } from '@nestjs/swagger';
 import { Body, Controller, Get, Post, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../core/guards/jwt.guard';
 import { ExcludeInterceptor } from '../../../core/middlewares/ExcludeEncryptionInterceptor';
@@ -12,7 +12,6 @@ import { Response } from 'express';
 @ApiTags('Apks')
 @ApiBearerAuth()
 @Controller('apks')
-@ExcludeInterceptor()
 export class ApkController {
   constructor(private readonly apkService: ApkService) {}
 
@@ -20,6 +19,7 @@ export class ApkController {
   @UseInterceptors(FileInterceptor('file'))
   @UseGuards(JwtAuthGuard, SuperAdmin)
   @ApiConsumes('multipart/form-data')
+  @ExcludeInterceptor()
   @ApiBody({
     type: ApkDto,
     description: 'Apk data'
@@ -28,6 +28,7 @@ export class ApkController {
     return this.apkService.uploadApk(apkDto, file);
   }
 
+  @ApiHeader({ name: 'X-Metadata', description: 'Rsa encrypted key', })
   @Get('get')
   async getApk() {
     const apk = await this.apkService.getLatestApkPath();

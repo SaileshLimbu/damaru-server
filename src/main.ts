@@ -50,7 +50,7 @@ async function bootstrap() {
 
   app.useLogger(logger);
   // Error Handler
-  app.useGlobalFilters(new ExceptionHandler(logger, configService));
+  app.useGlobalFilters(new ExceptionHandler(logger));
 
   const environment = app.get(ConfigService).get<string>('ENVIRONMENT') || Environments.DEVELOPMENT;
   console.log(`Environment: ${environment}`);
@@ -60,9 +60,7 @@ async function bootstrap() {
   // Resolve EncryptionService manually
   const encryptionService = app.get(EncryptionService);
   const reflector = app.get(Reflector);
-  if (environment !== Environments.DEVELOPMENT.toString()) {
-    app.useGlobalInterceptors(new EncryptionInterceptor(encryptionService, reflector));
-  }
+  app.useGlobalInterceptors(new EncryptionInterceptor(encryptionService, reflector, configService));
   await app.listen(configService.get<number>('APP_PORT') || 3000);
 }
 

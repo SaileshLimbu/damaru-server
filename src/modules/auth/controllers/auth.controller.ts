@@ -5,6 +5,7 @@ import { ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { LoginDto } from '../dtos/login.dto';
 import { JwtAuthGuard } from '../../../core/guards/jwt.guard';
 import { DamaruResponse } from '../../../common/interfaces/DamaruResponse';
+import { ExcludeInterceptor } from '../../../core/middlewares/ExcludeEncryptionInterceptor';
 
 @Controller('auth')
 export class AuthController {
@@ -22,6 +23,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @ExcludeInterceptor()
   @ApiConsumes('application/json', 'text/plain')
   @Get('check')
   checkAuth(@Req() req: Request): DamaruResponse {

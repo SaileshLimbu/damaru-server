@@ -20,6 +20,7 @@ export class AppController {
 
   @ApiOperation({ summary: 'Check application health' })
   @ApiResponse({ description: '{"message" : "OK"}', status: 200 })
+  @ExcludeInterceptor()
   @Get()
   checkHealth(): string {
     return this.appService.checkHealth();
@@ -34,15 +35,13 @@ export class AppController {
     description: 'Encryption JSON'
   })
   @ExcludeInterceptor()
-  encrypt(@Body() jsonToEncrypt: EncryptionDto): DamaruResponse {
+  encrypt(@Body() jsonToEncrypt: EncryptionDto): string {
     const key = jsonToEncrypt.key ?? this.configService.get('DEFAULT_AES_KEY');
     console.log('key for encryption', key);
     const rsaEncryptedKey = this.encryptionService.rsaEncrypt(key);
     console.log('rsaEncryptedKey', rsaEncryptedKey)
-    return {
-      message: 'Data Encrypted',
-      data: rsaEncryptedKey + this.encryptionService.aesEncrypt(JSON.stringify(jsonToEncrypt), key)
-    };
+    return rsaEncryptedKey + this.encryptionService.aesEncrypt(JSON.stringify(jsonToEncrypt), key)
+
   }
 
   @ApiConsumes('text/plain')

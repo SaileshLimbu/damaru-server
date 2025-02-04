@@ -1,7 +1,5 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus, Logger } from '@nestjs/common';
-import { Response } from 'express';
-import { ConfigService } from '@nestjs/config';
-import { Environments } from '../../common/interfaces/environments';
+import { Catch, ExceptionFilter, Logger } from '@nestjs/common';
+import { DamaruException } from '../../common/interfaces/DamaruException';
 
 /**
  * CustomException class implements the NestJS ExceptionFilter interface
@@ -12,22 +10,16 @@ export class ExceptionHandler implements ExceptionFilter {
   /**
    * Constructor to inject the Logger service.
    * @param logger - The logger instance from nestjs-pino.
-   * @param configService
    */
   constructor(
-    private readonly logger: Logger,
-    private readonly configService: ConfigService
+    private readonly logger: Logger
   ) {}
 
   /**
    * Method to catch and handle exceptions.
    * @param exception - The caught exception.
-   * @param host - ArgumentsHost to switch to HTTP context and get the response object.
    */
-  catch(exception: Error, host: ArgumentsHost): void {
-    const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-
+  catch(exception: Error): void {
     const message = exception.message;
 
     // Log the exception details
@@ -37,22 +29,6 @@ export class ExceptionHandler implements ExceptionFilter {
         stack: exception.stack
       })
     );
-
-    const env = this.configService.get<string>('ENVIRONMENT')
-    if(env == Environments.DEVELOPMENT) {
-      // Send the error response
-      response.status(HttpStatus.OK).json({
-        status: false,
-        message,
-        stack: exception.stack
-      });
-    } else {
-      // Send the error response
-      response.status(HttpStatus.OK).json({
-        status: false,
-        message
-      });
-    }
-
+    throw new DamaruException(message, exception.stack);
   }
 }

@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { Apk } from '../entities/Apk';
 import { ConfigService } from '@nestjs/config';
 import { ApkDto } from '../../app/dtos/ApkDto';
-import * as fs from 'node:fs';
 
 @Injectable()
 export class ApkService {
@@ -35,19 +34,18 @@ export class ApkService {
     }
   }
 
-  private getFilePath(filename: string): string {
-    return `${this.getApkPath()}/${filename}`;
-  }
-
   async uploadApk(apkDto: ApkDto, file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('No file uploaded!');
     }
-    const newFilename = `damaru-${apkDto.version}.apk`;
-    const tempFileName = 'damaru.apk';
-    console.log({apkDto})
-    fs.renameSync(this.getFilePath(tempFileName), this.getFilePath(newFilename));
-    await this.apkRepository.upsert({ version: parseInt(apkDto.version.toString()), force: apkDto.force.toString() === 'true', link: newFilename }, ['version']);
+    const fileName = 'damaru.apk';
+    // delete all versions
+    await this.apkRepository.delete({});
+    await this.apkRepository.insert({
+      version: parseInt(apkDto.version.toString()),
+      force: apkDto.force.toString() === 'true',
+      link: fileName
+    });
     return {
       message: 'APK uploaded successfully'
     };
