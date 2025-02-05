@@ -50,7 +50,7 @@ async function bootstrap() {
 
   app.useLogger(logger);
   // Error Handler
-  app.useGlobalFilters(new ExceptionHandler(logger));
+  app.useGlobalFilters(new ExceptionHandler());
 
   const environment = app.get(ConfigService).get<string>('ENVIRONMENT') || Environments.DEVELOPMENT;
   console.log(`Environment: ${environment}`);
