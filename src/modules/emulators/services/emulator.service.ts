@@ -207,6 +207,7 @@ export class EmulatorService {
   async unassignEmulatorFromAccounts(emulatorAssignedDto: MultiAccountsLinkDto) {
     const userEmulator = await this.userEmulatorRepository.findOne({
       where: { device: { device_id: emulatorAssignedDto.deviceId }, user: { id: emulatorAssignedDto.userId } },
+      relations: { device: true, user: true },
       select: { id: true }
     });
     if (userEmulator) {
