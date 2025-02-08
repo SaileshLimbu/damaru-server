@@ -5,7 +5,7 @@ import { MultiAccounts } from '../interfaces/multi-accounts';
 export class MultiAccountsLinkDto implements MultiAccounts {
   @ApiProperty()
   @IsString()
-  deviceId: string;
+  device_id: string;
 
   @ApiProperty()
   @IsArray()

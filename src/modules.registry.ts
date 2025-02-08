@@ -12,6 +12,7 @@ import { ServeStaticModule, ServeStaticModuleOptions } from '@nestjs/serve-stati
 import { resolve } from 'path';
 import { AccountEmulators } from './modules/emulators/entities/account-emulators';
 import { Apk } from './modules/apks/entities/Apk';
+import { Environments } from './common/interfaces/environments';
 
 
 /**
@@ -24,18 +25,23 @@ export const registerConfigModule = () =>
   });
 
 export const registerDatabaseModule = () =>
-  TypeOrmModule.forRoot({
-    type: 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT, 10) || 5432,
-    username: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    entities: [
-      Users, Account, UserEmulators, Emulator, EmulatorConnections,
-      ActivityLog, Role, Encryption, AccountEmulators, Apk
-    ],
-    synchronize: true
+  TypeOrmModule.forRootAsync({
+    imports: [ConfigModule],
+    inject: [ConfigService],
+    useFactory: (configService: ConfigService) => ({
+      type: 'postgres',
+      host: configService.get<string>('DB_HOST', 'localhost'),
+      port: configService.get<number>('DB_PORT', 5432),
+      username: configService.get<string>('DB_USER'),
+      password: configService.get<string>('DB_PASSWORD'),
+      database: configService.get<string>('DB_NAME'),
+      logging: configService.get<string>('ENVIRONMENT') === Environments.DEVELOPMENT,
+      entities: [
+        Users, Account, UserEmulators, Emulator, EmulatorConnections,
+        ActivityLog, Role, Encryption, AccountEmulators, Apk
+      ],
+      synchronize: configService.get<string>('ENVIRONMENT') === Environments.DEVELOPMENT,
+    }),
   });
 
 export const registerStatic = () =>
