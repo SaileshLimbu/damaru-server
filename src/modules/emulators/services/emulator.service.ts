@@ -206,7 +206,7 @@ export class EmulatorService {
    */
   async unassignEmulatorFromAccounts(emulatorAssignedDto: MultiAccountsLinkDto) {
     const userEmulator = await this.userEmulatorRepository.findOne({
-      where: { device: { device_id: emulatorAssignedDto.device_id }, user: { id: emulatorAssignedDto.userId } },
+      where: { device: { device_id: emulatorAssignedDto.deviceId }, user: { id: emulatorAssignedDto.userId } },
       relations: { device: true, user: true },
       select: { id: true }
     });
@@ -234,7 +234,7 @@ export class EmulatorService {
   async assignEmulator(emulatorAssignedDto: MultiAccountsLinkDto, user: JwtToken) {
     if (this.checkSuperAdminOrSelf(emulatorAssignedDto.userId, user)) {
       const userEmulator = await this.userEmulatorRepository.findOne({
-        where: { device: { device_id: emulatorAssignedDto.device_id }, user: { id: emulatorAssignedDto.userId } },
+        where: { device: { device_id: emulatorAssignedDto.deviceId }, user: { id: emulatorAssignedDto.userId } },
         select: { id: true }
       });
       if (userEmulator) {
