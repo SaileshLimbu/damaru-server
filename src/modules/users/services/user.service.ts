@@ -106,7 +106,7 @@ export class UsersService {
   async remove(id: string): Promise<DamaruResponse> {
     const devices = await this.usersRepository.findOne({ where: { id , emulators: { unlinked_at: IsNull()}}, relations: { emulators: { device: true } } });
     await this.activityLogService.log({ user_id: id, action: Actions.DELETE_USER, metadata: { id } });
-    devices.emulators.map(async (device) => {
+    devices?.emulators.map(async (device) => {
       await this.emulatorRepository.update(device.device.device_id, { state: EmulatorState.AVAILABLE });
     });
     await this.usersRepository.delete(id);
